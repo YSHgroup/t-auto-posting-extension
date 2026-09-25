@@ -29,7 +29,7 @@ async def lifespan(_: FastAPI):
     worker.stop()
 
 app = FastAPI(title="Telegram Auto Bot API", version="0.1.0", description="Independent automation server. No Telegram integration.", lifespan=lifespan)
-app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")], allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
+app.add_middleware(CORSMiddleware, allow_origins=[origin.strip() for origin in settings.cors_origins.split(",")], allow_origin_regex=r"chrome-extension://.*", allow_credentials=False, allow_methods=["*"], allow_headers=["*"])
 
 class PostInput(BaseModel):
     title: str

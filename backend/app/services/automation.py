@@ -22,4 +22,7 @@ class AutomationEngine:
             return
         if self.daily_successes() >= self.store.scheduler.maximum_posts_per_day:
             return
+        last_attempt = self.store.history[0].posted_at if self.store.history else None
+        if last_attempt and (datetime.now(UTC) - last_attempt).total_seconds() < self.store.scheduler.posting_interval * 60:
+            return
         self.store.run_once()
