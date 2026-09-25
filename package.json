@@ -1,9 +1,0 @@
-{
-  "name": "telegram-automation-extension",
-  "private": true,
-  "scripts": {
-    "install:all": "npm install --prefix extension-ui",
-    "dev": "npm run dev --prefix extension-ui",
-    "build": "npm run build --prefix extension-ui"
-  }
-}
