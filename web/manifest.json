@@ -1,0 +1,10 @@
+{
+  "manifest_version": 3,
+  "name": "Telegram Auto Bot",
+  "version": "0.1.0",
+  "description": "Independent mock-mode automation assistant.",
+  "permissions": ["sidePanel", "storage"],
+  "action": { "default_title": "Telegram Auto Bot" },
+  "side_panel": { "default_path": "index.html" },
+  "host_permissions": ["http://localhost:8000/*", "https://*/*"]
+}
