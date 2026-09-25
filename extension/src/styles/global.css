@@ -1,0 +1,188 @@
+:root {
+  --bg: #0f1419;
+  --surface: #1a2332;
+  --surface2: #243044;
+  --border: #2d3a4f;
+  --text: #e8eef7;
+  --muted: #94a3b8;
+  --accent: #3b82f6;
+  --accent-hover: #2563eb;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --radius: 10px;
+  font-family: "Inter", system-ui, -apple-system, sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+a {
+  color: var(--accent);
+  text-decoration: none;
+}
+
+.app-shell {
+  display: flex;
+  min-height: 100vh;
+}
+
+.sidebar {
+  width: 200px;
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  padding: 16px 12px;
+  flex-shrink: 0;
+}
+
+.sidebar h1 {
+  font-size: 15px;
+  margin: 0 0 20px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.nav-link {
+  display: block;
+  padding: 8px 10px;
+  border-radius: 8px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+
+.nav-link.active,
+.nav-link:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.main {
+  flex: 1;
+  padding: 20px 24px;
+  overflow: auto;
+}
+
+.page-title {
+  font-size: 20px;
+  font-weight: 600;
+  margin: 0 0 16px;
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  margin-bottom: 12px;
+}
+
+.grid-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 12px;
+}
+
+.stat {
+  background: var(--surface2);
+  border-radius: 8px;
+  padding: 12px;
+}
+
+.stat-label {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.stat-value {
+  font-size: 22px;
+  font-weight: 700;
+}
+
+.btn {
+  border: none;
+  border-radius: 8px;
+  padding: 8px 14px;
+  cursor: pointer;
+  font-weight: 600;
+  font-size: 13px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: white;
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-ghost {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--text);
+}
+
+.btn-danger {
+  background: var(--danger);
+  color: white;
+}
+
+.input,
+.select,
+.textarea {
+  width: 100%;
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  color: var(--text);
+  padding: 8px 10px;
+}
+
+.textarea {
+  min-height: 120px;
+  resize: vertical;
+}
+
+.label {
+  display: block;
+  margin-bottom: 6px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.row {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--surface2);
+  font-size: 11px;
+  margin-right: 4px;
+}
+
+.status-running {
+  color: var(--success);
+}
+
+.status-stopped {
+  color: var(--muted);
+}
+
+.error {
+  color: var(--danger);
+  font-size: 13px;
+}

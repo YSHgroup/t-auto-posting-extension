@@ -1,37 +1,59 @@
-# Telegram Auto Bot Architecture
+# Architecture
 
-This project is an independent automation system. It does not use the Telegram Bot API, MTProto, Telegram Client API, Telegram Web, or browser automation. All current activity is simulated by a replaceable `DataProvider`.
+## Overview
 
-## Runtime
+Telegram Auto Bot is an **independent automation system**. It does not use Telegram Bot API, MTProto, or browser automation. All Telegram-like data flows through a replaceable `DataProvider` (default: `MockDataProvider`).
 
 ```text
-Chrome side panel (React + TypeScript)
-        | configurable HTTP URL
-        v
-FastAPI REST API
-        |
-        +-- services: groups, posts, feed, automation, notifications
-        +-- providers/data: DataProvider -> MockDataProvider
-        +-- providers/ai: AIProvider -> OpenAIProvider | ClaudeProvider
-        +-- APScheduler worker
-        v
-PostgreSQL (SQLAlchemy + Alembic)
+Chrome Extension (React/Vite, MV3, Side Panel)
+        │ HTTPS REST
+        ▼
+FastAPI Application
+        ├── API Layer (thin routes)
+        ├── Service Layer (business logic)
+        ├── AutomationEngine + APScheduler
+        ├── AIProvider (OpenAI | Claude)
+        ├── DataProvider (Mock | future External)
+        └── PostgreSQL (SQLAlchemy + Alembic)
 ```
 
-The extension owns presentation and user intent. The server owns persistence, bot state, scheduling, posting eligibility, feed rotation, mock posting, and AI credentials. API routes remain thin and call service-layer methods.
+## Provider abstractions
 
-## Provider boundaries
+### DataProvider
 
-`DataProvider` exposes group search, messages, simulated posting/replacement, and replies. The mock implementation is deterministic and never leaves the application. `AIProvider` returns Pydantic-validated structured results. Provider selection is server-side through environment configuration; secrets never enter the extension bundle.
+- `search_groups(query, exclude_joined, limit=50)`
+- `get_group(group_id)`
+- `validate_group_id(group_id)`
+- `get_messages(group_id, limit, after_message_id?)`
+- `publish_post(group_id, content)` → simulates post + replace previous app post
+- `get_latest_message(group_id)`
+- `simulate_replies` (seed/demo)
 
-## Automation loop
+### AIProvider
 
-`AutomationEngine` checks persisted bot state, scheduler rules, daily limits, and the feed cursor before each operation. It processes enabled feed items in order, records success/skip/failure, advances the cursor even after a skip or failure, and never performs real Telegram actions.
+- `analyze_group(group, messages_sample)` → structured Pydantic model
+- `recommend_post(group_analysis, posts)` → ranked recommendations
+- `analyze_opportunities(group, messages)` → investment/partnership candidates
 
-## Delivery phases
+Invalid AI JSON: one correction retry, then error to client.
 
-1. Foundation: configuration, database, migrations, Docker, API health.
-2. Mock groups and analysis, feed, and posts.
-3. Scheduler, persistent bot state, ordered rotation, eligibility and history.
-4. Replies, notifications, opportunities, and AI provider integrations.
-5. Production hardening: auth, HTTPS deployment, rate limiting, structured logs, and broader test coverage.
+## Automation
+
+- **Bot state**: `STOPPED | RUNNING | PAUSED | ERROR` (persisted)
+- **Scheduler settings**: auto mode, hours, days, interval, min messages, max posts/day
+- **Feed rotation**: persistent `current_feed_index`, ordered feed items
+- **Eligibility**: count messages between last app post and latest group message ≥ `minimum_messages`
+- **On success**: history, counters, mock replace previous post
+- **On skip/fail**: record history, advance index (no infinite retry)
+
+Extension only controls the server; APScheduler runs posting ticks server-side.
+
+## Security
+
+- Secrets in server `.env` only
+- Extension stores only `apiBaseUrl` (chrome.storage)
+- Production: HTTPS, CORS, auth (placeholder hooks in Phase 7)
+
+## Monorepo layout
+
+See repository root `README.md` and `docs/database.md`.

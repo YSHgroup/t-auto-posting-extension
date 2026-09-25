@@ -1,22 +1,40 @@
-# API Contract
+# REST API
 
-FastAPI publishes interactive OpenAPI documentation at `/docs` and `/redoc`.
+Base path: `/api`. OpenAPI at `/docs`.
 
-## Core endpoints
-
-- `GET /api/health`
-- `GET /api/dashboard`
-- `GET /api/groups/search?q=`
-- `GET /api/groups/{id}`
-- `POST /api/groups/{id}/analyze`
-- `GET /api/groups/{id}/messages?limit=500`
-- `GET|POST|PUT|DELETE /api/feed[/id]`
-- `GET|POST|PUT|DELETE /api/posts[/id]`
-- `POST /api/posts/recommend`
-- `GET|PUT /api/scheduler`
-- `GET /api/bot/status`, `POST /api/bot/start`, `POST /api/bot/stop`
-- `GET /api/history`
-- `GET /api/notifications`, `POST /api/notifications/{id}/read`
-- `POST /api/groups/{id}/opportunities`, `GET /api/opportunities`
-
-Mock mode is the default and remains available when PostgreSQL is not running. With PostgreSQL available, startup initializes the SQLAlchemy schema and `python -m app.database.seed` loads the 50+ mock groups and demo posts. Run `alembic upgrade head` for controlled production migrations.
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/health` | Health check |
+| GET | `/dashboard` | Dashboard aggregates |
+| GET | `/groups/search?q=` | Search groups (max 50, exclude joined) |
+| GET | `/groups/{id}` | Group detail |
+| POST | `/groups/{id}/analyze` | Run AI analysis, store result |
+| GET | `/groups/{id}/analysis` | List analyses |
+| GET | `/groups/{id}/messages` | Messages from data provider |
+| GET | `/feed` | List feed items ordered |
+| POST | `/feed` | Add group to feed (by group id) |
+| PUT | `/feed/{id}` | Update order, enabled, manual reorder |
+| DELETE | `/feed/{id}` | Remove from feed |
+| POST | `/feed/reorder` | Bulk reorder |
+| GET | `/posts` | List posts |
+| POST | `/posts` | Create post |
+| GET | `/posts/{id}` | Get post |
+| PUT | `/posts/{id}` | Update post |
+| DELETE | `/posts/{id}` | Delete post |
+| POST | `/posts/{id}/duplicate` | Duplicate post |
+| POST | `/posts/recommend` | AI recommend for feed_group_id |
+| GET | `/scheduler` | Get scheduler settings |
+| PUT | `/scheduler` | Update scheduler |
+| POST | `/bot/start` | Start bot |
+| POST | `/bot/stop` | Stop bot |
+| GET | `/bot/status` | Bot state + cursor |
+| GET | `/history` | Posting history |
+| GET | `/notifications` | Notifications filter |
+| POST | `/notifications/{id}/read` | Mark read |
+| POST | `/notifications/read-all` | Mark all read |
+| POST | `/groups/{id}/opportunities` | Scan up to 500 messages |
+| GET | `/opportunities` | List stored opportunities |
+| GET | `/settings` | App + AI display settings |
+| PUT | `/settings` | Update non-secret settings |
+| POST | `/settings/test-connection` | Health from extension |
+| POST | `/settings/reset-demo` | Reset mock demo data |
