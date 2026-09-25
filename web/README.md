@@ -4,8 +4,6 @@ This template provides a minimal setup to get React working in Vite with HMR and
 
 Currently, two official plugins are available:
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
 
 ## React Compiler
 
@@ -30,3 +28,26 @@ If you are developing a production application, we recommend enabling type-aware
 ```
 
 See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+
+## Chrome Extension
+
+Built with Node 22, React, TypeScript, Vite, and Manifest V3.
+
+## Build and install
+
+```bash
+npm install
+npm run build:extension
+```
+
+The command verifies the generated extension at `dist/`. In Chrome, open `chrome://extensions`, enable **Developer mode**, select **Load unpacked**, and choose the `dist` folder. Do not select `src`, `public`, or the repository root.
+
+To create a zip for transfer:
+
+```bash
+npm run package:extension
+```
+
+This creates `telegram-auto-bot-extension.zip`. For local development, `npm run dev` serves the UI as a web page; it does not install an extension into Chrome.
+
+The Settings page controls the FastAPI URL; the bundle contains no AI or database secrets.
