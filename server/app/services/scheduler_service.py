@@ -1,4 +1,5 @@
 from datetime import datetime, time
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
@@ -42,14 +43,39 @@ class SchedulerService:
     def update_scheduler(self, payload: SchedulerUpdate) -> SchedulerOut:
         s = self._get_scheduler()
         data = payload.model_dump(exclude_unset=True)
+        start_time = s.start_time
+        end_time = s.end_time
         if "start_time" in data and data["start_time"]:
-            h, m = data["start_time"].split(":")
-            s.start_time = time(int(h), int(m))
+            try:
+                h, m = data["start_time"].split(":")
+                start_time = time(int(h), int(m))
+            except (ValueError, TypeError) as exc:
+                raise ValueError("Time must use HH:MM format") from exc
             del data["start_time"]
         if "end_time" in data and data["end_time"]:
-            h, m = data["end_time"].split(":")
-            s.end_time = time(int(h), int(m))
+            try:
+                h, m = data["end_time"].split(":")
+                end_time = time(int(h), int(m))
+            except (ValueError, TypeError) as exc:
+                raise ValueError("Time must use HH:MM format") from exc
             del data["end_time"]
+        if start_time >= end_time:
+            raise ValueError("End time must be later than start time")
+        if "working_days" in data and any(day not in range(7) for day in data["working_days"]):
+            raise ValueError("Working days must be between 0 and 6")
+        if data.get("posting_interval_minutes", s.posting_interval_minutes) < 1:
+            raise ValueError("Posting interval must be at least 1 minute")
+        if data.get("minimum_messages", s.minimum_messages) < 0:
+            raise ValueError("Minimum messages cannot be negative")
+        if data.get("maximum_posts_per_day", s.maximum_posts_per_day) < 1:
+            raise ValueError("Maximum posts per day must be at least 1")
+        if "timezone" in data:
+            try:
+                ZoneInfo(data["timezone"])
+            except (KeyError, ValueError) as exc:
+                raise ValueError("Invalid timezone") from exc
+            s.start_time = start_time
+            s.end_time = end_time
         for k, v in data.items():
             setattr(s, k, v)
         self.db.commit()

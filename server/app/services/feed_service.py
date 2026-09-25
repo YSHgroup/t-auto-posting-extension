@@ -3,7 +3,7 @@ from uuid import UUID
 from sqlalchemy.orm import Session
 
 from app.models.entities import FeedItem, Group, Post, PostAssignment
-from app.providers.data.mock import get_data_provider
+from app.providers.data.factory import get_data_provider
 from app.schemas.feed import FeedItemCreate, FeedItemOut, FeedItemUpdate, FeedReorderRequest
 
 
@@ -64,6 +64,11 @@ class FeedService:
         if payload.order_index is not None:
             item.order_index = payload.order_index
         if payload.post_id is not None:
+            post = self.db.query(Post).filter(Post.id == payload.post_id).first()
+            if not post:
+                raise ValueError("Post not found")
+            if not post.enabled or post.status != "Active":
+                raise ValueError("Post is not active")
             assignment = item.assignment
             if assignment:
                 assignment.post_id = payload.post_id

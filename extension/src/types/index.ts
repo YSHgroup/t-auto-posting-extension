@@ -20,6 +20,14 @@ export interface GroupDetail {
   joined: boolean;
 }
 
+export interface GroupMessage {
+  id: string;
+  username: string | null;
+  content: string;
+  created_at: string;
+  is_app_post: boolean;
+}
+
 export interface GroupAnalysis {
   id: string;
   summary: string;

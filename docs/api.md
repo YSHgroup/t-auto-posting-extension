@@ -11,6 +11,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 | POST | `/groups/{id}/analyze` | Run AI analysis, store result |
 | GET | `/groups/{id}/analysis` | List analyses |
 | GET | `/groups/{id}/messages` | Messages from data provider |
+| POST | `/groups/{id}/simulate-reply` | Add a mock reply and unread notification |
 | GET | `/feed` | List feed items ordered |
 | POST | `/feed` | Add group to feed (by group id) |
 | PUT | `/feed/{id}` | Update order, enabled, manual reorder |
@@ -22,7 +23,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 | PUT | `/posts/{id}` | Update post |
 | DELETE | `/posts/{id}` | Delete post |
 | POST | `/posts/{id}/duplicate` | Duplicate post |
-| POST | `/posts/recommend` | AI recommend for feed_group_id |
+| POST | `/posts/recommend` | AI recommend for `feed_item_id` |
 | GET | `/scheduler` | Get scheduler settings |
 | PUT | `/scheduler` | Update scheduler |
 | POST | `/bot/start` | Start bot |

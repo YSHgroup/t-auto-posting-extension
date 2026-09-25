@@ -4,6 +4,7 @@ import type {
   FeedItem,
   GroupAnalysis,
   GroupDetail,
+  GroupMessage,
   GroupSearchResult,
   NotificationItem,
   OpportunityItem,
@@ -31,6 +32,13 @@ export const api = {
   dashboard: () => request<Dashboard>("/dashboard"),
   searchGroups: (q: string) => request<GroupSearchResult[]>(`/groups/search?q=${encodeURIComponent(q)}`),
   getGroup: (id: string) => request<GroupDetail>(`/groups/${id}`),
+  getGroupMessages: (id: string, limit = 100) =>
+    request<GroupMessage[]>(`/groups/${id}/messages?limit=${limit}`),
+  simulateReply: (id: string, username: string, message: string, post_id?: string) =>
+    request<GroupMessage>(`/groups/${id}/simulate-reply`, {
+      method: "POST",
+      body: JSON.stringify({ username, message, post_id }),
+    }),
   analyzeGroup: (id: string) =>
     request<GroupAnalysis>(`/groups/${id}/analyze`, { method: "POST" }),
   listAnalysis: (id: string) => request<GroupAnalysis[]>(`/groups/${id}/analysis`),

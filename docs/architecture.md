@@ -27,7 +27,11 @@ FastAPI Application
 - `get_messages(group_id, limit, after_message_id?)`
 - `publish_post(group_id, content)` → simulates post + replace previous app post
 - `get_latest_message(group_id)`
-- `simulate_replies` (seed/demo)
+- `simulate_reply(group_id, username, message, post_id?)` (mock demo)
+
+`get_data_provider()` selects the configured provider from `app_settings`. `mock` is
+implemented; unsupported modes return an explicit error instead of silently using
+mock data.
 
 ### AIProvider
 

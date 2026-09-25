@@ -36,6 +36,12 @@ class GroupMessageOut(BaseModel):
     is_app_post: bool
 
 
+class SimulatedReplyRequest(BaseModel):
+    username: str
+    message: str
+    post_id: UUID | None = None
+
+
 class GroupAnalysisOut(ORMModel):
     id: UUID
     group_id: UUID

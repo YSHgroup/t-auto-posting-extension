@@ -2,6 +2,8 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.models.entities import AISettings, AppSettings, SchedulerSettings
+from app.schemas.scheduler import SchedulerUpdate
+from app.services.scheduler_service import SchedulerService
 
 
 class SettingsService:
@@ -25,6 +27,18 @@ class SettingsService:
         }
 
     def update_settings(self, payload: dict) -> dict:
+        if payload.get("data_mode") not in (None, "mock"):
+            raise ValueError("Only mock data mode is currently implemented")
+        scheduler_keys = {
+            "minimum_messages",
+            "maximum_posts_per_day",
+            "posting_interval_minutes",
+            "timezone",
+        }
+        scheduler_payload = {key: payload[key] for key in scheduler_keys if key in payload}
+        if scheduler_payload:
+            SchedulerService(self.db).update_scheduler(SchedulerUpdate(**scheduler_payload))
+
         ai = self.db.query(AISettings).filter(AISettings.id == 1).first()
         if not ai:
             ai = AISettings(id=1)
@@ -34,9 +48,6 @@ class SettingsService:
             app = AppSettings(id=1)
             self.db.add(app)
         sched = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == 1).first()
-        if not sched:
-            sched = SchedulerSettings(id=1)
-            self.db.add(sched)
 
         if "ai_provider" in payload:
             ai.provider = payload["ai_provider"]
@@ -46,8 +57,5 @@ class SettingsService:
             ai.anthropic_model = payload["anthropic_model"]
         if "data_mode" in payload:
             app.data_mode = payload["data_mode"]
-        for key in ("minimum_messages", "maximum_posts_per_day", "posting_interval_minutes", "timezone"):
-            if key in payload:
-                setattr(sched, key, payload[key])
         self.db.commit()
         return self.get_settings()

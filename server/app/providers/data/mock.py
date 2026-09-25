@@ -4,7 +4,7 @@ from dataclasses import asdict
 
 from sqlalchemy.orm import Session
 
-from app.models.entities import Group, GroupMessage
+from app.models.entities import Group, GroupMessage, Notification, Reply
 from app.providers.data.base import DataProvider, ProviderGroup, ProviderMessage
 from app.providers.data.mock_catalog import MOCK_GROUPS
 
@@ -118,6 +118,7 @@ class MockDataProvider:
                 is_app_post=m.is_app_post,
                 app_post_id=str(m.app_post_id) if m.app_post_id else None,
                 replaced=m.replaced,
+                created_at=m.created_at,
             )
             for m in rows
         ]
@@ -206,6 +207,56 @@ class MockDataProvider:
         self.db.add(new_msg)
         self.db.flush()
         return msg_id, new_seq
+
+    def simulate_reply(
+        self, group_id: str, username: str, message: str, post_id: str | None = None
+    ) -> ProviderMessage:
+        group = self.db.query(Group).filter(Group.external_id == group_id).first()
+        if not group:
+            raise ValueError("Group not found")
+        latest = self.get_latest_sequence(group_id)
+        message_id = f"reply_{group_id}_{latest + 1}"
+        reply = GroupMessage(
+            group_id=group.id,
+            external_message_id=message_id,
+            user_id=f"simulated_{username}",
+            username=username,
+            content=message,
+            sequence_num=latest + 1,
+        )
+        self.db.add(reply)
+        related_post = None
+        if post_id:
+            import uuid
+
+            related_post = uuid.UUID(post_id)
+        self.db.add(
+            Reply(
+                group_id=group.id,
+                post_id=related_post,
+                user_id=f"simulated_{username}",
+                username=username,
+                message=message,
+            )
+        )
+        self.db.add(
+            Notification(
+                group_id=group.id,
+                user_id=f"simulated_{username}",
+                username=username,
+                message=message,
+                related_post_id=related_post,
+            )
+        )
+        self.db.flush()
+        return ProviderMessage(
+            id=message_id,
+            user_id=reply.user_id,
+            username=username,
+            content=message,
+            sequence_num=reply.sequence_num,
+            created_at=reply.created_at,
+        )
 
 
 def get_data_provider(db: Session) -> DataProvider:

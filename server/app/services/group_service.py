@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 
 from app.models.entities import Group, GroupAnalysis
 from app.providers.ai.factory import get_ai_provider
-from app.providers.data.mock import get_data_provider
+from app.providers.data.factory import get_data_provider
 from app.schemas.groups import GroupAnalysisOut, GroupDetail, GroupMessageOut, GroupSearchResult
 
 
@@ -65,17 +65,31 @@ class GroupService:
 
     def get_messages(self, external_id: str, limit: int = 100) -> list[GroupMessageOut]:
         g = self._ensure_group(external_id)
-        msgs = self.data.get_messages(external_id, limit=limit)
+        msgs = self.data.get_messages(external_id, limit=min(max(limit, 1), 500))
         return [
             GroupMessageOut(
                 id=m.id,
                 username=m.username,
                 content=m.content,
-                created_at=__import__("datetime").datetime.utcnow(),
+                created_at=m.created_at,
                 is_app_post=m.is_app_post,
             )
             for m in msgs
         ]
+
+    def simulate_reply(
+        self, external_id: str, username: str, message: str, post_id: str | None = None
+    ) -> GroupMessageOut:
+        self._ensure_group(external_id)
+        simulated = self.data.simulate_reply(external_id, username, message, post_id)
+        self.db.commit()
+        return GroupMessageOut(
+            id=simulated.id,
+            username=simulated.username,
+            content=simulated.content,
+            created_at=simulated.created_at,
+            is_app_post=False,
+        )
 
     async def analyze(self, external_id: str) -> GroupAnalysisOut:
         g = self._ensure_group(external_id)

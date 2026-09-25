@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.models.entities import FeedItem, Group, Post, PostAssignment
 from app.providers.ai.factory import get_ai_provider
-from app.providers.data.mock import get_data_provider
+from app.providers.data.factory import get_data_provider
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RecommendPostRequest, RecommendPostResponse
 
 
@@ -51,6 +51,9 @@ class PostService:
         row = self.db.query(Post).filter(Post.id == post_id).first()
         if not row:
             raise ValueError("Post not found")
+        self.db.query(PostAssignment).filter(PostAssignment.post_id == post_id).delete(
+            synchronize_session=False
+        )
         self.db.delete(row)
         self.db.commit()
 

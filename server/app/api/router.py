@@ -5,6 +5,7 @@ from sqlalchemy.orm import Session
 
 from app.api.deps import get_db
 from app.schemas.feed import FeedItemCreate, FeedItemOut, FeedItemUpdate, FeedReorderRequest
+from app.schemas.groups import SimulatedReplyRequest
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RecommendPostRequest, RecommendPostResponse
 from app.schemas.scheduler import BotStatusOut, DashboardOut, SchedulerOut, SchedulerUpdate
 from app.services.dashboard_service import DashboardService
@@ -46,6 +47,18 @@ def get_group(group_id: str, db: Session = Depends(get_db)):
 @api_router.get("/groups/{group_id}/messages")
 def group_messages(group_id: str, limit: int = 100, db: Session = Depends(get_db)):
     return GroupService(db).get_messages(group_id, limit=limit)
+
+
+@api_router.post("/groups/{group_id}/simulate-reply")
+def simulate_reply(
+    group_id: str, payload: SimulatedReplyRequest, db: Session = Depends(get_db)
+):
+    try:
+        return GroupService(db).simulate_reply(
+            group_id, payload.username, payload.message, str(payload.post_id) if payload.post_id else None
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @api_router.post("/groups/{group_id}/analyze")
@@ -109,6 +122,14 @@ def create_post(payload: PostCreate, db: Session = Depends(get_db)):
     return PostService(db).create(payload)
 
 
+@api_router.post("/posts/recommend", response_model=RecommendPostResponse)
+async def recommend_post(payload: RecommendPostRequest, db: Session = Depends(get_db)):
+    try:
+        return await PostService(db).recommend(payload)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
 @api_router.get("/posts/{post_id}", response_model=PostOut)
 def get_post(post_id: UUID, db: Session = Depends(get_db)):
     try:
@@ -142,14 +163,6 @@ def duplicate_post(post_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(404, str(e)) from e
 
 
-@api_router.post("/posts/recommend", response_model=RecommendPostResponse)
-async def recommend_post(payload: RecommendPostRequest, db: Session = Depends(get_db)):
-    try:
-        return await PostService(db).recommend(payload)
-    except ValueError as e:
-        raise HTTPException(400, str(e)) from e
-
-
 @api_router.get("/scheduler", response_model=SchedulerOut)
 def get_scheduler(db: Session = Depends(get_db)):
     return SchedulerService(db).get_scheduler()
@@ -157,7 +170,10 @@ def get_scheduler(db: Session = Depends(get_db)):
 
 @api_router.put("/scheduler", response_model=SchedulerOut)
 def update_scheduler(payload: SchedulerUpdate, db: Session = Depends(get_db)):
-    return SchedulerService(db).update_scheduler(payload)
+    try:
+        return SchedulerService(db).update_scheduler(payload)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @api_router.post("/bot/start", response_model=BotStatusOut)
@@ -217,7 +233,10 @@ def get_settings(db: Session = Depends(get_db)):
 
 @api_router.put("/settings")
 def update_settings(payload: dict, db: Session = Depends(get_db)):
-    return SettingsService(db).update_settings(payload)
+    try:
+        return SettingsService(db).update_settings(payload)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @api_router.post("/settings/test-connection")

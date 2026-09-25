@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { api } from "../services/api";
-import type { GroupAnalysis, GroupDetail } from "../types";
+import type { GroupAnalysis, GroupDetail, GroupMessage } from "../types";
 
 export function GroupDetailPage() {
   const { id = "" } = useParams();
@@ -9,6 +9,7 @@ export function GroupDetailPage() {
   const [group, setGroup] = useState<GroupDetail | null>(null);
   const [analysis, setAnalysis] = useState<GroupAnalysis | null>(null);
   const [history, setHistory] = useState<GroupAnalysis[]>([]);
+  const [messages, setMessages] = useState<GroupMessage[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -17,6 +18,7 @@ export function GroupDetailPage() {
       try {
         const g = await api.getGroup(id);
         setGroup(g);
+        setMessages(await api.getGroupMessages(id, 50));
         const list = await api.listAnalysis(id);
         setHistory(list);
         if (list[0]) setAnalysis(list[0]);
@@ -105,6 +107,17 @@ export function GroupDetailPage() {
           <p>{analysis.posting_style.join(" · ")}</p>
         </div>
       )}
+      <div className="card">
+        <h3>Recent messages</h3>
+        {messages.length === 0 && <p>No messages available.</p>}
+        {messages.slice().reverse().map((message) => (
+          <div key={message.id} className="message-row">
+            <strong>{message.is_app_post ? "You" : `@${message.username || "unknown"}`}</strong>
+            <span>{new Date(message.created_at).toLocaleString()}</span>
+            <p>{message.content}</p>
+          </div>
+        ))}
+      </div>
       {history.length > 1 && (
         <div className="card">
           <h3>Previous analysis</h3>

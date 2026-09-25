@@ -1,11 +1,12 @@
 import logging
-from datetime import datetime, time
+from datetime import datetime, time, timezone
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
 from app.models.entities import BotState, FeedItem, Group, Post, PostAssignment, PostHistory, SchedulerSettings
-from app.providers.data.mock import get_data_provider
+from app.providers.data.factory import get_data_provider
 
 logger = logging.getLogger(__name__)
 
@@ -20,11 +21,28 @@ class AutomationEngine:
         return SessionLocal()
 
     def _within_schedule(self, s: SchedulerSettings) -> bool:
-        now = datetime.utcnow()
+        try:
+            now = datetime.now(ZoneInfo(s.timezone or "UTC"))
+        except (KeyError, ValueError):
+            logger.warning("Invalid scheduler timezone %s; using UTC", s.timezone)
+            now = datetime.now(timezone.utc)
         if now.weekday() not in (s.working_days or []):
             return False
         t = now.time()
         return s.start_time <= t <= s.end_time
+
+    def _interval_elapsed(self, db: Session, interval_minutes: int) -> bool:
+        latest = (
+            db.query(PostHistory)
+            .filter(PostHistory.status == "success")
+            .order_by(PostHistory.posted_at.desc())
+            .first()
+        )
+        if not latest:
+            return True
+        posted_at = latest.posted_at.replace(tzinfo=timezone.utc)
+        elapsed = datetime.now(timezone.utc) - posted_at
+        return elapsed.total_seconds() >= max(1, interval_minutes) * 60
 
     def _posts_today(self, db: Session) -> int:
         start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
@@ -41,6 +59,8 @@ class AutomationEngine:
             if not sched or not sched.auto_mode:
                 return
             if not self._within_schedule(sched):
+                return
+            if not self._interval_elapsed(db, sched.posting_interval_minutes):
                 return
             if self._posts_today(db) >= (sched.maximum_posts_per_day or 50):
                 return
@@ -99,7 +119,15 @@ class AutomationEngine:
                 db.commit()
                 return
 
-            post = db.query(Post).filter(Post.id == assignment.post_id, Post.enabled.is_(True)).first()
+            post = (
+                db.query(Post)
+                .filter(
+                    Post.id == assignment.post_id,
+                    Post.enabled.is_(True),
+                    Post.status == "Active",
+                )
+                .first()
+            )
             if not post:
                 db.add(
                     PostHistory(
@@ -140,6 +168,7 @@ class AutomationEngine:
                     )
                 )
                 bot.last_error = str(exc)
+                bot.state = "ERROR"
 
             bot.current_feed_index = (idx + 1) % len(items)
             db.commit()

@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 from typing import Protocol
 
 
@@ -24,6 +25,7 @@ class ProviderMessage:
     is_app_post: bool = False
     app_post_id: str | None = None
     replaced: bool = False
+    created_at: datetime | None = None
 
 
 class DataProvider(Protocol):
@@ -50,3 +52,7 @@ class DataProvider(Protocol):
     def get_latest_sequence(self, group_id: str) -> int: ...
 
     def get_last_app_post_sequence(self, group_id: str) -> int | None: ...
+
+    def simulate_reply(
+        self, group_id: str, username: str, message: str, post_id: str | None = None
+    ) -> ProviderMessage: ...

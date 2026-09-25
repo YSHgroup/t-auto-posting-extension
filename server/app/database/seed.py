@@ -18,6 +18,8 @@ from app.models.entities import (
     Notification,
     Opportunity,
     Post,
+    PostAssignment,
+    FeedItem,
     Reply,
     SchedulerSettings,
     User,
@@ -44,6 +46,10 @@ def _clear(db: Session) -> None:
         Post,
         Group,
         User,
+        BotState,
+        SchedulerSettings,
+        AISettings,
+        AppSettings,
     ):
         db.query(model).delete()
     db.commit()
@@ -167,6 +173,12 @@ def run_seed(db: Session | None = None, reset: bool = False) -> None:
                 confidence=0.86,
             )
         )
+
+        if not db.query(FeedItem).filter(FeedItem.group_id == g0.id).first():
+            feed_item = FeedItem(group_id=g0.id, order_index=0, enabled=True)
+            db.add(feed_item)
+            db.flush()
+            db.add(PostAssignment(feed_item_id=feed_item.id, post_id=sample_post.id, selected_by="seed"))
         db.add(
             Opportunity(
                 group_id=g0.id,

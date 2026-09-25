@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from app.models.entities import Group, Opportunity
 from app.providers.ai.factory import get_ai_provider
-from app.providers.data.mock import get_data_provider
+from app.providers.data.factory import get_data_provider
 from app.services.group_service import GroupService
 
 
@@ -19,6 +19,9 @@ class OpportunityService:
         messages = self.data.get_messages(external_id, limit=500)
         ai = get_ai_provider(self.db)
         result = await ai.analyze_opportunities(pg, messages)
+        self.db.query(Opportunity).filter(Opportunity.group_id == g.id).delete(
+            synchronize_session=False
+        )
         stored: list[dict] = []
         for cand in result.investment + result.partnership:
             row = Opportunity(

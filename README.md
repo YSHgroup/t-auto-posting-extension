@@ -7,7 +7,7 @@ No Telegram Bot API, MTProto, or Telegram Web automation.
 ## Requirements
 
 - Node.js **22+**
-- Python **3.11+** (compatible with 3.14; use 3.14 when available)
+- Python **3.14+**
 - PostgreSQL 16+
 - Docker & Docker Compose (optional)
 
