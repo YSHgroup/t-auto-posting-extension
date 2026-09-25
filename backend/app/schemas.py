@@ -98,6 +98,25 @@ class Opportunity(BaseModel):
     evidence_level: Literal["explicit", "strong_indication", "possible", "insufficient"]
     confidence: float = Field(ge=0, le=1)
 
+class Reply(BaseModel):
+    id: str
+    group_id: str
+    group_name: str
+    post_id: str
+    username: str
+    message: str
+    created_at: datetime
+    read: bool = False
+
+class Notification(BaseModel):
+    id: str
+    group_name: str
+    username: str
+    message: str
+    post_id: str
+    created_at: datetime
+    read: bool = False
+
 class Dashboard(BaseModel):
     groups: int
     active_feed: int

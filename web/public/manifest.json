@@ -5,6 +5,7 @@
   "description": "Independent mock-mode automation assistant.",
   "permissions": ["sidePanel", "storage"],
   "action": { "default_title": "Telegram Auto Bot" },
+  "background": { "service_worker": "background.js", "type": "module" },
   "side_panel": { "default_path": "index.html" },
   "host_permissions": ["http://localhost:8000/*", "https://*/*"]
 }

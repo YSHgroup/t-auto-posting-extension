@@ -6,7 +6,7 @@ import logging
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from app.schemas import BotStatus, Dashboard, FeedItem, GroupAnalysis, HistoryItem, Opportunity, Post, SchedulerSettings
+from app.schemas import BotStatus, Dashboard, FeedItem, GroupAnalysis, HistoryItem, Notification, Opportunity, Post, Reply, SchedulerSettings
 from app.services.store import DemoStore
 from app.workers.scheduler import SchedulerWorker
 from app.database.init_db import init_db
@@ -128,6 +128,15 @@ def delete_post(post_id: str) -> dict[str, bool]:
     store.posts.pop(post_id, None)
     return {"ok": True}
 
+@app.post("/api/posts/{post_id}/duplicate", response_model=Post)
+def duplicate_post(post_id: str) -> Post:
+    source = store.posts.get(post_id)
+    if source is None:
+        raise HTTPException(404, "Post not found")
+    post = source.model_copy(update={"id": __import__("uuid").uuid4().hex, "title": f"{source.title} (copy)", "usage_count": 0, "created_at": datetime.now(UTC)})
+    store.posts[post.id] = post
+    return post
+
 @app.get("/api/scheduler", response_model=SchedulerSettings)
 def get_scheduler() -> SchedulerSettings:
     return store.scheduler
@@ -155,6 +164,28 @@ def stop_bot() -> BotStatus:
 @app.get("/api/history", response_model=list[HistoryItem])
 def history() -> list[HistoryItem]:
     return store.history
+
+@app.get("/api/replies", response_model=list[Reply])
+def replies() -> list[Reply]:
+    return store.replies
+
+@app.get("/api/notifications", response_model=list[Notification])
+def notifications() -> list[Notification]:
+    return store.notifications
+
+@app.post("/api/notifications/{notification_id}/read", response_model=Notification)
+def mark_notification_read(notification_id: str) -> Notification:
+    notification = next((item for item in store.notifications if item.id == notification_id), None)
+    if notification is None:
+        raise HTTPException(404, "Notification not found")
+    notification.read = True
+    return notification
+
+@app.post("/api/notifications/read-all")
+def mark_all_notifications_read() -> dict[str, int]:
+    for notification in store.notifications:
+        notification.read = True
+    return {"updated": len(store.notifications)}
 
 @app.post("/api/groups/{group_id}/opportunities", response_model=list[Opportunity])
 async def analyze_opportunities(group_id: str) -> list[Opportunity]:

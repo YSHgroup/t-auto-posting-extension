@@ -1,4 +1,4 @@
-import type { Analysis, Dashboard, FeedItem, Group, HistoryItem, Opportunity, Post, Scheduler } from '../types'
+import type { Analysis, Dashboard, FeedItem, Group, HistoryItem, Notification, Opportunity, Post, Scheduler } from '../types'
 
 const defaultUrl = 'http://localhost:8000'
 export const getApiUrl = () => localStorage.getItem('telegram-auto-bot-api-url') || defaultUrl
@@ -24,4 +24,8 @@ export const api = {
   saveScheduler: (settings: Scheduler) => request<Scheduler>('/api/scheduler', { method: 'PUT', body: JSON.stringify(settings) }),
   bot: (action: 'start' | 'stop') => request<{ state: string }>(`/api/bot/${action}`, { method: 'POST' }),
   opportunities: (groupId: string) => request<Opportunity[]>(`/api/groups/${groupId}/opportunities`, { method: 'POST' }),
+  duplicatePost: (id: string) => request<Post>(`/api/posts/${id}/duplicate`, { method: 'POST' }),
+  notifications: () => request<Notification[]>('/api/notifications'),
+  markNotificationRead: (id: string) => request<Notification>(`/api/notifications/${id}/read`, { method: 'POST' }),
+  markAllNotificationsRead: () => request<{ updated: number }>('/api/notifications/read-all', { method: 'POST' }),
 }
