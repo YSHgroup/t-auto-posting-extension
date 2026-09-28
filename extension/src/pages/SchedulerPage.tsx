@@ -37,6 +37,10 @@ export function SchedulerPage() {
     <div>
       <h2 className="page-title">Scheduler</h2>
       <div className="card">
+        <strong>Telegram Web safety boundary</strong>
+        <p>Auto Mode runs only the local mock simulation. Real Telegram sending, reading, message counting, and deletion are not automated. For real groups, use Feed to open Telegram, copy the selected text, send it yourself, manually remove any earlier post if needed, then record the manual send.</p>
+      </div>
+      <div className="card">
         <label>
           <input
             type="checkbox"

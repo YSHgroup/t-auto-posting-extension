@@ -13,7 +13,7 @@ class DashboardService:
     def get_dashboard(self) -> DashboardOut:
         start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
         return DashboardOut(
-            total_groups=self.db.query(Group).count(),
+            total_groups=self.db.query(FeedItem).count(),
             active_feed_groups=self.db.query(FeedItem).filter(FeedItem.enabled.is_(True)).count(),
             total_posts=self.db.query(Post).count(),
             posts_today=self.db.query(PostHistory)

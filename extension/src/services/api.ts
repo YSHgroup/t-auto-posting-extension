@@ -16,8 +16,13 @@ import { useSettingsStore } from "../stores/settingsStore";
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = useSettingsStore.getState().apiBaseUrl.replace(/\/$/, "");
+  const installationId = await useSettingsStore.getState().getInstallationId();
   const res = await fetch(`${base}/api${path}`, {
-    headers: { "Content-Type": "application/json", ...(init?.headers || {}) },
+    headers: {
+      "Content-Type": "application/json",
+      "X-Installation-ID": installationId,
+      ...(init?.headers || {}),
+    },
     ...init,
   });
   if (!res.ok) {
@@ -31,9 +36,24 @@ export const api = {
   health: () => request<{ status: string }>("/health"),
   dashboard: () => request<Dashboard>("/dashboard"),
   searchGroups: (q: string) => request<GroupSearchResult[]>(`/groups/search?q=${encodeURIComponent(q)}`),
+  intakeTelegramGroup: (body: { group_id: string; group_name: string; source_url: string; action: "add" | "skip" }) =>
+    request<{ group_id: string; action: string; group_name: string }>("/groups/intake", {
+      method: "POST",
+      body: JSON.stringify(body),
+    }),
   getGroup: (id: string) => request<GroupDetail>(`/groups/${id}`),
   getGroupMessages: (id: string, limit = 100) =>
     request<GroupMessage[]>(`/groups/${id}/messages?limit=${limit}`),
+  importObservedMessages: (id: string, messages: string[]) =>
+    request<{ imported: number }>(`/groups/${id}/observed-messages`, {
+      method: "POST",
+      body: JSON.stringify({ messages }),
+    }),
+  logManualReply: (id: string, username: string, message: string) =>
+    request<{ ok: boolean; reply_id: string }>(`/groups/${id}/log-manual-reply`, {
+      method: "POST",
+      body: JSON.stringify({ username, message }),
+    }),
   simulateReply: (id: string, username: string, message: string, post_id?: string) =>
     request<GroupMessage>(`/groups/${id}/simulate-reply`, {
       method: "POST",
@@ -43,10 +63,12 @@ export const api = {
     request<GroupAnalysis>(`/groups/${id}/analyze`, { method: "POST" }),
   listAnalysis: (id: string) => request<GroupAnalysis[]>(`/groups/${id}/analysis`),
   listFeed: () => request<FeedItem[]>("/feed"),
-  addFeed: (group_id: string) => request<FeedItem>("/feed", { method: "POST", body: JSON.stringify({ group_id }) }),
+  addFeed: (group_id: string, group_url = "") => request<FeedItem>("/feed", { method: "POST", body: JSON.stringify({ group_id, group_url }) }),
   updateFeed: (id: string, body: Record<string, unknown>) =>
     request<FeedItem>(`/feed/${id}`, { method: "PUT", body: JSON.stringify(body) }),
   deleteFeed: (id: string) => request<{ ok: boolean }>(`/feed/${id}`, { method: "DELETE" }),
+  recordManualPost: (id: string) =>
+    request<{ ok: boolean; history_id: string; posted_at: string }>(`/feed/${id}/record-manual-post`, { method: "POST" }),
   reorderFeed: (items: { id: string; order_index: number }[]) =>
     request<FeedItem[]>("/feed/reorder", { method: "POST", body: JSON.stringify({ items }) }),
   listPosts: () => request<Post[]>("/posts"),

@@ -3,6 +3,7 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
+from app.core.identity import installation_key_for_session
 from app.models.entities import BotState, SchedulerSettings
 from app.schemas.scheduler import BotStatusOut, SchedulerOut, SchedulerUpdate
 
@@ -12,17 +13,19 @@ class SchedulerService:
         self.db = db
 
     def _get_scheduler(self) -> SchedulerSettings:
-        row = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == 1).first()
+        key = installation_key_for_session(self.db)
+        row = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == key).first()
         if not row:
-            row = SchedulerSettings(id=1)
+            row = SchedulerSettings(id=key)
             self.db.add(row)
             self.db.commit()
         return row
 
     def _get_bot(self) -> BotState:
-        row = self.db.query(BotState).filter(BotState.id == 1).first()
+        key = installation_key_for_session(self.db)
+        row = self.db.query(BotState).filter(BotState.id == key).first()
         if not row:
-            row = BotState(id=1)
+            row = BotState(id=key)
             self.db.add(row)
             self.db.commit()
         return row
@@ -74,8 +77,8 @@ class SchedulerService:
                 ZoneInfo(data["timezone"])
             except (KeyError, ValueError) as exc:
                 raise ValueError("Invalid timezone") from exc
-            s.start_time = start_time
-            s.end_time = end_time
+        s.start_time = start_time
+        s.end_time = end_time
         for k, v in data.items():
             setattr(s, k, v)
         self.db.commit()

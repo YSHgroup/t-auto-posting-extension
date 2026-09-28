@@ -8,6 +8,7 @@ from sqlalchemy import (
     Enum,
     Float,
     ForeignKey,
+    BigInteger,
     Integer,
     String,
     Text,
@@ -17,7 +18,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
-from app.database.session import Base
+from app.database.session import Base, InstallationScoped
 
 
 class PostType(str, enum.Enum):
@@ -56,6 +57,7 @@ class Group(Base):
     name: Mapped[str] = mapped_column(String(255))
     username: Mapped[str] = mapped_column(String(128), index=True)
     description: Mapped[str] = mapped_column(Text, default="")
+    telegram_url: Mapped[str] = mapped_column(String(2048), default="")
     member_count: Mapped[int] = mapped_column(Integer, default=0)
     categories: Mapped[list] = mapped_column(JSONB, default=list)
     keywords: Mapped[list] = mapped_column(JSONB, default=list)
@@ -90,6 +92,21 @@ class GroupMessage(Base):
     __table_args__ = (UniqueConstraint("group_id", "external_message_id", name="uq_group_message"),)
 
 
+class ObservedGroupMessage(InstallationScoped, Base):
+    __tablename__ = "observed_group_messages"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("groups.id"), index=True)
+    username: Mapped[str | None] = mapped_column(String(128), nullable=True)
+    content: Mapped[str] = mapped_column(Text)
+    sequence_num: Mapped[int] = mapped_column(Integer)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "group_id", "sequence_num", name="uq_observed_group_sequence"),
+    )
+
+
 class User(Base):
     __tablename__ = "users"
 
@@ -100,7 +117,7 @@ class User(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
 
 
-class GroupAnalysis(Base):
+class GroupAnalysis(InstallationScoped, Base):
     __tablename__ = "group_analysis"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -126,7 +143,7 @@ class GroupAnalysis(Base):
     group: Mapped["Group"] = relationship(back_populates="analyses")
 
 
-class Post(Base):
+class Post(InstallationScoped, Base):
     __tablename__ = "posts"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -142,7 +159,7 @@ class Post(Base):
     )
 
 
-class FeedItem(Base):
+class FeedItem(InstallationScoped, Base):
     __tablename__ = "feed_items"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -159,8 +176,12 @@ class FeedItem(Base):
         back_populates="feed_item", uselist=False
     )
 
+    __table_args__ = (
+        UniqueConstraint("owner_id", "group_id", name="uq_feed_items_owner_group"),
+    )
 
-class PostAssignment(Base):
+
+class PostAssignment(InstallationScoped, Base):
     __tablename__ = "post_assignments"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -173,7 +194,7 @@ class PostAssignment(Base):
     post: Mapped["Post"] = relationship()
 
 
-class PostHistory(Base):
+class PostHistory(InstallationScoped, Base):
     __tablename__ = "post_history"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -186,7 +207,7 @@ class PostHistory(Base):
     posted_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
-class Reply(Base):
+class Reply(InstallationScoped, Base):
     __tablename__ = "replies"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -199,7 +220,7 @@ class Reply(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
-class Notification(Base):
+class Notification(InstallationScoped, Base):
     __tablename__ = "notifications"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -212,10 +233,10 @@ class Notification(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
-class SchedulerSettings(Base):
+class SchedulerSettings(InstallationScoped, Base):
     __tablename__ = "scheduler_settings"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1)
     auto_mode: Mapped[bool] = mapped_column(Boolean, default=True)
     start_time: Mapped[time] = mapped_column(Time, default=time(9, 0))
     end_time: Mapped[time] = mapped_column(Time, default=time(20, 0))
@@ -226,10 +247,10 @@ class SchedulerSettings(Base):
     timezone: Mapped[str] = mapped_column(String(64), default="UTC")
 
 
-class BotState(Base):
+class BotState(InstallationScoped, Base):
     __tablename__ = "bot_state"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1)
     state: Mapped[str] = mapped_column(String(16), default=BotStateEnum.STOPPED.value)
     current_feed_index: Mapped[int] = mapped_column(Integer, default=0)
     last_error: Mapped[str | None] = mapped_column(Text, nullable=True)
@@ -238,7 +259,7 @@ class BotState(Base):
     )
 
 
-class Opportunity(Base):
+class Opportunity(InstallationScoped, Base):
     __tablename__ = "opportunities"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
@@ -252,17 +273,30 @@ class Opportunity(Base):
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
 
 
-class AISettings(Base):
+class AISettings(InstallationScoped, Base):
     __tablename__ = "ai_settings"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1)
     provider: Mapped[str] = mapped_column(String(32), default="openai")
     openai_model: Mapped[str] = mapped_column(String(64), default="gpt-4o-mini")
     anthropic_model: Mapped[str] = mapped_column(String(64), default="claude-3-5-haiku-latest")
 
 
-class AppSettings(Base):
+class AppSettings(InstallationScoped, Base):
     __tablename__ = "app_settings"
 
-    id: Mapped[int] = mapped_column(Integer, primary_key=True, default=1)
+    id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1)
     data_mode: Mapped[str] = mapped_column(String(16), default="mock")
+
+
+class SkippedGroup(InstallationScoped, Base):
+    __tablename__ = "skipped_groups"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    group_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("groups.id"), index=True)
+    source_url: Mapped[str] = mapped_column(Text, default="")
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow, index=True)
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "group_id", name="uq_skipped_group_owner_group"),
+    )

@@ -6,8 +6,9 @@ PostgreSQL with UUID primary keys where noted.
 
 | Table | Purpose |
 |-------|---------|
-| `groups` | Cached group metadata from data provider |
+| `groups` | Shared group metadata and user-confirmed Telegram URL |
 | `group_messages` | Optional cache of messages (mock sync) |
+| `observed_group_messages` | Private, manually copied message text, scoped to extension installation |
 | `users` | Mock/app users |
 | `group_analysis` | Latest and historical AI analysis per group |
 | `posts` | User-authored post templates |
@@ -16,11 +17,18 @@ PostgreSQL with UUID primary keys where noted.
 | `post_history` | Every post attempt (success/skipped/failed) |
 | `replies` | Simulated replies to posts |
 | `notifications` | Derived from replies / system events |
-| `scheduler_settings` | Singleton row for automation config |
-| `bot_state` | Singleton row: state + `current_feed_index` |
+| `scheduler_settings` | Per-installation automation config |
+| `bot_state` | Per-installation state + `current_feed_index` |
 | `opportunities` | Stored opportunity scan results |
-| `ai_settings` | Singleton: provider preference (keys from env) |
-| `app_settings` | Singleton: data mode, timezone |
+| `ai_settings` | Per-installation provider preference (keys from env) |
+| `app_settings` | Per-installation data mode |
+| `skipped_groups` | Per-installation record of groups explicitly skipped in Telegram Web |
+
+Application-owned tables (`group_analysis`, `posts`, `feed_items`, assignments, history,
+replies, notifications, scheduler/bot state, opportunities, AI/app settings, copied
+observations, and skipped groups) carry `owner_id`. API requests bind an installation UUID
+from `X-Installation-ID` to SQLAlchemy tenant criteria. The UUID isolates extension
+profiles but is not verified authentication.
 
 ## Relationships
 
@@ -31,7 +39,9 @@ PostgreSQL with UUID primary keys where noted.
 ## Indexes
 
 - `groups(external_id)` unique
-- `feed_items(order_index)`
+- `feed_items(order_index)` and unique `(owner_id, group_id)`
+- `owner_id` indexes on installation-owned tables
+- `observed_group_messages(owner_id, group_id, sequence_num)` unique
 - `post_history(group_id, posted_at)`
 - `post_history(post_id)`
 - `notifications(read, created_at)`
@@ -39,4 +49,4 @@ PostgreSQL with UUID primary keys where noted.
 
 ## Counters
 
-Tracked on `posts` (usage_count), `feed_items` (post_count, last_posted_at), `groups` (joined), and daily aggregates via `post_history` queries / materialized counts in dashboard service.
+Tracked on `posts` (usage_count), `feed_items` (post_count, last_posted_at), and daily aggregates via per-installation `post_history` queries. Manual post records are user-confirmed and are not delivery-verified by Telegram.

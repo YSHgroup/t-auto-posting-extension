@@ -54,14 +54,10 @@ class MockDataProvider:
         self, query: str, exclude_external_ids: set[str], limit: int = 50
     ) -> list[tuple[ProviderGroup, float]]:
         results: list[tuple[ProviderGroup, float]] = []
-        joined_map = {
-            g.external_id: g.joined
-            for g in self.db.query(Group).filter(Group.joined.is_(True)).all()
-        }
         for raw in MOCK_GROUPS:
             if raw["id"] in exclude_external_ids:
                 continue
-            pg = self._to_provider_group(raw, joined=joined_map.get(raw["id"], False))
+            pg = self._to_provider_group(raw, joined=False)
             if pg.joined:
                 continue
             score = self._score(pg, query)

@@ -2,7 +2,10 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.entities import FeedItem, Group, Post, PostAssignment
+from datetime import datetime
+from urllib.parse import urlparse
+
+from app.models.entities import FeedItem, Group, Post, PostAssignment, PostHistory
 from app.providers.data.factory import get_data_provider
 from app.schemas.feed import FeedItemCreate, FeedItemOut, FeedItemUpdate, FeedReorderRequest
 
@@ -30,6 +33,7 @@ class FeedService:
             next_scheduled_at=item.next_scheduled_at,
             group_name=group.name if group else None,
             group_external_id=group.external_id if group else None,
+            group_telegram_url=group.telegram_url if group else None,
             selected_post_id=post_id,
             selected_post_title=post_title,
         )
@@ -39,14 +43,52 @@ class FeedService:
         return [self._to_out(i) for i in items]
 
     def add(self, payload: FeedItemCreate) -> FeedItemOut:
-        if not self.data.validate_group_id(payload.group_id):
-            raise ValueError("Invalid group ID")
-        from app.services.group_service import GroupService
-
-        g = GroupService(self.db)._ensure_group(payload.group_id)
-        g.joined = True
+        if not payload.group_id.strip() or len(payload.group_id.strip()) > 64:
+            raise ValueError("Group ID must contain between 1 and 64 characters")
+        if payload.group_url:
+            parsed_url = urlparse(payload.group_url)
+            if parsed_url.scheme != "https" or parsed_url.hostname not in {
+                "t.me",
+                "www.t.me",
+                "web.telegram.org",
+                "telegram.org",
+                "www.telegram.org",
+            }:
+                raise ValueError("Only Telegram HTTPS URLs are accepted")
+        group_id = payload.group_id.strip()
+        g = self.db.query(Group).filter(Group.external_id == group_id).first()
+        if not g:
+            provided = self.data.get_group(group_id)
+            if provided:
+                g = Group(
+                    external_id=provided.id,
+                    name=provided.name,
+                    username=provided.username,
+                    description=provided.description,
+                    member_count=provided.member_count,
+                    categories=provided.categories,
+                    keywords=provided.keywords,
+                    joined=False,
+                )
+            else:
+                g = Group(
+                    external_id=group_id,
+                    name=payload.group_name or group_id,
+                    username=payload.group_username or "",
+                    description=payload.group_description or "",
+                    member_count=0,
+                    categories=[],
+                    keywords=[],
+                    joined=False,
+                    telegram_url=payload.group_url or "",
+                )
+            self.db.add(g)
+            self.db.flush()
+        if payload.group_url:
+            g.telegram_url = payload.group_url[:2048]
         existing = self.db.query(FeedItem).filter(FeedItem.group_id == g.id).first()
         if existing:
+            self.db.commit()
             return self._to_out(existing)
         max_order = self.db.query(FeedItem).count()
         item = FeedItem(group_id=g.id, order_index=max_order, enabled=True)
@@ -94,6 +136,38 @@ class FeedService:
         self.db.delete(item)
         self._reindex()
         self.db.commit()
+
+    def record_manual_post(self, item_id: UUID) -> dict:
+        item = self.db.query(FeedItem).filter(FeedItem.id == item_id).first()
+        if not item:
+            raise ValueError("Feed item not found")
+        assignment = self.db.query(PostAssignment).filter(
+            PostAssignment.feed_item_id == item.id
+        ).first()
+        if not assignment:
+            raise ValueError("Select a post for this feed item before recording a send")
+        post = self.db.query(Post).filter(
+            Post.id == assignment.post_id,
+            Post.enabled.is_(True),
+            Post.status == "Active",
+        ).first()
+        if not post:
+            raise ValueError("Selected post is not active")
+        now = datetime.utcnow()
+        history = PostHistory(
+            group_id=item.group_id,
+            post_id=post.id,
+            feed_item_id=item.id,
+            status="success",
+            reason="User-confirmed manual send; Telegram delivery was not independently verified.",
+            posted_at=now,
+        )
+        self.db.add(history)
+        item.post_count += 1
+        item.last_posted_at = now
+        post.usage_count += 1
+        self.db.commit()
+        return {"ok": True, "history_id": str(history.id), "posted_at": now.isoformat()}
 
     def reorder(self, req: FeedReorderRequest) -> list[FeedItemOut]:
         for entry in req.items:

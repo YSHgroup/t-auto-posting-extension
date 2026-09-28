@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
 import { api } from "../services/api";
 import type { FeedItem, Post } from "../types";
 
@@ -54,13 +55,47 @@ export function FeedPage() {
         <div key={item.id} className="card">
           <div className="row">
             <strong>#{index + 1}</strong>
-            <span>{item.group_name}</span>
+            {item.group_external_id ? (
+              <Link to={`/groups/${encodeURIComponent(item.group_external_id)}`}>{item.group_name}</Link>
+            ) : <span>{item.group_name}</span>}
             <span className="badge">{item.enabled ? "Enabled" : "Disabled"}</span>
           </div>
           <p>
             Selected: {item.selected_post_title || "None"} · Posts: {item.post_count} · Last:{" "}
             {item.last_posted_at ? new Date(item.last_posted_at).toLocaleString() : "—"}
           </p>
+          <p className="muted">Telegram actions are manual. Open the group, copy the selected post, review it, then paste and send yourself.</p>
+          <div className="row">
+            {item.group_telegram_url && (
+              <a className="btn btn-ghost" href={item.group_telegram_url} target="_blank" rel="noreferrer">
+                Open Telegram
+              </a>
+            )}
+            <button
+              type="button"
+              className="btn btn-ghost"
+              disabled={!item.selected_post_id}
+              onClick={() => {
+                const selected = posts.find((post) => post.id === item.selected_post_id);
+                if (selected) void navigator.clipboard.writeText(selected.content).then(
+                  () => alert("Post copied. Review and send it manually in Telegram."),
+                );
+              }}
+            >
+              Copy selected post
+            </button>
+            <button
+              type="button"
+              className="btn btn-primary"
+              disabled={!item.selected_post_id}
+              onClick={() => {
+                if (!window.confirm("After you manually send this post in Telegram, record it in your history?")) return;
+                void api.recordManualPost(item.id).then(() => load());
+              }}
+            >
+              Record manual send
+            </button>
+          </div>
           <div className="row">
             <button type="button" className="btn btn-ghost" onClick={() => void move(index, -1)}>
               Move Up

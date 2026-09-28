@@ -3,9 +3,14 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
 
-from app.api.deps import get_db
+from app.api.deps import get_installation_db as get_db
 from app.schemas.feed import FeedItemCreate, FeedItemOut, FeedItemUpdate, FeedReorderRequest
-from app.schemas.groups import SimulatedReplyRequest
+from app.schemas.groups import (
+    ManualReplyRequest,
+    ObservedMessagesRequest,
+    SimulatedReplyRequest,
+    TelegramGroupIntake,
+)
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RecommendPostRequest, RecommendPostResponse
 from app.schemas.scheduler import BotStatusOut, DashboardOut, SchedulerOut, SchedulerUpdate
 from app.services.dashboard_service import DashboardService
@@ -36,6 +41,21 @@ def search_groups(q: str = Query(default=""), db: Session = Depends(get_db)):
     return GroupService(db).search(q)
 
 
+@api_router.post("/groups/intake")
+def intake_telegram_group(payload: TelegramGroupIntake, db: Session = Depends(get_db)):
+    try:
+        return GroupService(db).intake_telegram_group(
+            payload.group_id, payload.group_name, payload.source_url, payload.action
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@api_router.get("/groups/intake-status/{group_id}")
+def telegram_group_intake_status(group_id: str, db: Session = Depends(get_db)):
+    return GroupService(db).telegram_group_decision(group_id)
+
+
 @api_router.get("/groups/{group_id}")
 def get_group(group_id: str, db: Session = Depends(get_db)):
     try:
@@ -49,6 +69,16 @@ def group_messages(group_id: str, limit: int = 100, db: Session = Depends(get_db
     return GroupService(db).get_messages(group_id, limit=limit)
 
 
+@api_router.post("/groups/{group_id}/observed-messages")
+def import_observed_messages(
+    group_id: str, payload: ObservedMessagesRequest, db: Session = Depends(get_db)
+):
+    try:
+        return {"imported": GroupService(db).import_observed_messages(group_id, payload.messages)}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
 @api_router.post("/groups/{group_id}/simulate-reply")
 def simulate_reply(
     group_id: str, payload: SimulatedReplyRequest, db: Session = Depends(get_db)
@@ -56,6 +86,18 @@ def simulate_reply(
     try:
         return GroupService(db).simulate_reply(
             group_id, payload.username, payload.message, str(payload.post_id) if payload.post_id else None
+        )
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@api_router.post("/groups/{group_id}/log-manual-reply")
+def log_manual_reply(
+    group_id: str, payload: ManualReplyRequest, db: Session = Depends(get_db)
+):
+    try:
+        return GroupService(db).log_manual_reply(
+            group_id, payload.username, payload.message, payload.post_id
         )
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
@@ -105,6 +147,14 @@ def delete_feed(item_id: UUID, db: Session = Depends(get_db)):
         return {"ok": True}
     except ValueError as e:
         raise HTTPException(404, str(e)) from e
+
+
+@api_router.post("/feed/{item_id}/record-manual-post")
+def record_manual_post(item_id: UUID, db: Session = Depends(get_db)):
+    try:
+        return FeedService(db).record_manual_post(item_id)
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @api_router.post("/feed/reorder", response_model=list[FeedItemOut])

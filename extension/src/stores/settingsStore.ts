@@ -1,47 +1,71 @@
 import { create } from "zustand";
 
 const STORAGE_KEY = "telegram_auto_bot_settings";
+const INSTALLATION_KEY = "telegram_auto_bot_installation_id";
 
 interface SettingsState {
   apiBaseUrl: string;
+  installationId: string;
   connectionOk: boolean | null;
   load: () => Promise<void>;
+  getInstallationId: () => Promise<string>;
   setApiBaseUrl: (url: string) => Promise<void>;
   testConnection: () => Promise<boolean>;
 }
 
-async function readStorage(): Promise<string> {
+function storageGet<T>(key: string): Promise<T | undefined> {
   return new Promise((resolve) => {
-    chrome.storage.local.get([STORAGE_KEY], (result) => {
-      const data = result[STORAGE_KEY] as { apiBaseUrl?: string } | undefined;
-      resolve(data?.apiBaseUrl || "http://localhost:8000");
-    });
+    chrome.storage.local.get([key], (result) => resolve(result[key] as T | undefined));
   });
 }
 
-async function writeStorage(apiBaseUrl: string): Promise<void> {
+function storageSet(key: string, value: unknown): Promise<void> {
   return new Promise((resolve) => {
-    chrome.storage.local.set({ [STORAGE_KEY]: { apiBaseUrl } }, () => resolve());
+    chrome.storage.local.set({ [key]: value }, resolve);
   });
+}
+
+export async function getInstallationId(): Promise<string> {
+  const current = await storageGet<string>(INSTALLATION_KEY);
+  if (current) return current;
+  const created = crypto.randomUUID();
+  await storageSet(INSTALLATION_KEY, created);
+  return created;
+}
+
+async function readSettings(): Promise<string> {
+  const data = await storageGet<{ apiBaseUrl?: string }>(STORAGE_KEY);
+  return data?.apiBaseUrl || "http://localhost:8000";
+}
+
+async function writeSettings(apiBaseUrl: string): Promise<void> {
+  await storageSet(STORAGE_KEY, { apiBaseUrl });
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   apiBaseUrl: "http://localhost:8000",
+  installationId: "",
   connectionOk: null,
   load: async () => {
-    const url = await readStorage();
-    set({ apiBaseUrl: url });
+    const [url, installationId] = await Promise.all([readSettings(), getInstallationId()]);
+    set({ apiBaseUrl: url, installationId });
   },
+  getInstallationId,
   setApiBaseUrl: async (url: string) => {
-    await writeStorage(url);
+    await writeSettings(url);
     set({ apiBaseUrl: url, connectionOk: null });
   },
   testConnection: async () => {
     try {
-      const base = get().apiBaseUrl.replace(/\/$/, "");
-      const res = await fetch(`${base}/api/health`);
+      const [base, installationId] = await Promise.all([
+        Promise.resolve(get().apiBaseUrl.replace(/\/$/, "")),
+        getInstallationId(),
+      ]);
+      const res = await fetch(`${base}/api/health`, {
+        headers: { "X-Installation-ID": installationId },
+      });
       const ok = res.ok;
-      set({ connectionOk: ok });
+      set({ connectionOk: ok, installationId });
       return ok;
     } catch {
       set({ connectionOk: false });

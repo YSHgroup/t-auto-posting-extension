@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal, engine
+from app.core.identity import installation_key_for_session
 from app.models.entities import (
     AISettings,
     AppSettings,
@@ -32,7 +33,14 @@ PARTNER_MSG = "Looking for gaming platforms to integrate with."
 
 
 def _clear(db: Session) -> None:
-    from app.models.entities import FeedItem, GroupAnalysis, PostAssignment, PostHistory
+    from app.models.entities import (
+        FeedItem,
+        GroupAnalysis,
+        ObservedGroupMessage,
+        PostAssignment,
+        PostHistory,
+        SkippedGroup,
+    )
 
     for model in (
         PostHistory,
@@ -42,10 +50,9 @@ def _clear(db: Session) -> None:
         Opportunity,
         Reply,
         GroupAnalysis,
-        GroupMessage,
+        ObservedGroupMessage,
+        SkippedGroup,
         Post,
-        Group,
-        User,
         BotState,
         SchedulerSettings,
         AISettings,
@@ -59,32 +66,38 @@ def run_seed(db: Session | None = None, reset: bool = False) -> None:
     own_session = db is None
     db = db or SessionLocal()
     try:
+        singleton_key = installation_key_for_session(db)
         if reset:
             _clear(db)
 
-        if db.query(Group).count() > 0 and not reset:
+        if db.query(Post).count() > 0 and not reset:
             return
 
         users = []
         for i, uname in enumerate(MOCK_USERNAMES):
-            u = User(external_id=f"user_{i+1:03d}", username=uname, display_name=uname.replace("_", " ").title())
-            db.add(u)
+            external_id = f"user_{i+1:03d}"
+            u = db.query(User).filter(User.external_id == external_id).first()
+            if not u:
+                u = User(external_id=external_id, username=uname, display_name=uname.replace("_", " ").title())
+                db.add(u)
             users.append(u)
         db.flush()
 
         groups: list[Group] = []
         for raw in MOCK_GROUPS:
-            g = Group(
-                external_id=raw["id"],
-                name=raw["name"],
-                username=raw["username"],
-                description=raw["description"],
-                member_count=raw["member_count"],
-                categories=raw["categories"],
-                keywords=raw.get("keywords", []),
-                joined=False,
-            )
-            db.add(g)
+            g = db.query(Group).filter(Group.external_id == raw["id"]).first()
+            if not g:
+                g = Group(
+                    external_id=raw["id"],
+                    name=raw["name"],
+                    username=raw["username"],
+                    description=raw["description"],
+                    member_count=raw["member_count"],
+                    categories=raw["categories"],
+                    keywords=raw.get("keywords", []),
+                    joined=False,
+                )
+                db.add(g)
             groups.append(g)
         db.flush()
 
@@ -99,6 +112,8 @@ def run_seed(db: Session | None = None, reset: bool = False) -> None:
             "What stack do you use for realtime chat?",
         ]
         for g in groups[:10]:
+            if db.query(GroupMessage).filter(GroupMessage.group_id == g.id).count() > 0:
+                continue
             seq = 0
             for i in range(65):
                 seq += 1
@@ -191,21 +206,21 @@ def run_seed(db: Session | None = None, reset: bool = False) -> None:
             )
         )
 
-        if not db.query(SchedulerSettings).filter(SchedulerSettings.id == 1).first():
+        if not db.query(SchedulerSettings).filter(SchedulerSettings.id == singleton_key).first():
             db.add(
                 SchedulerSettings(
-                    id=1,
+                    id=singleton_key,
                     auto_mode=True,
                     working_days=[0, 1, 2, 3, 4, 5, 6],
                     minimum_messages=20,
                 )
             )
-        if not db.query(BotState).filter(BotState.id == 1).first():
-            db.add(BotState(id=1, state="STOPPED", current_feed_index=0))
-        if not db.query(AISettings).filter(AISettings.id == 1).first():
-            db.add(AISettings(id=1))
-        if not db.query(AppSettings).filter(AppSettings.id == 1).first():
-            db.add(AppSettings(id=1, data_mode="mock"))
+        if not db.query(BotState).filter(BotState.id == singleton_key).first():
+            db.add(BotState(id=singleton_key, state="STOPPED", current_feed_index=0))
+        if not db.query(AISettings).filter(AISettings.id == singleton_key).first():
+            db.add(AISettings(id=singleton_key))
+        if not db.query(AppSettings).filter(AppSettings.id == singleton_key).first():
+            db.add(AppSettings(id=singleton_key, data_mode="mock"))
 
         db.commit()
     finally:

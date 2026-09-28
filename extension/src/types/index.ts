@@ -18,6 +18,7 @@ export interface GroupDetail {
   member_count: number;
   categories: string[];
   joined: boolean;
+  telegram_url: string;
 }
 
 export interface GroupMessage {
@@ -64,6 +65,7 @@ export interface FeedItem {
   last_posted_at: string | null;
   group_name?: string;
   group_external_id?: string;
+  group_telegram_url?: string;
   selected_post_id?: string | null;
   selected_post_title?: string | null;
 }

@@ -8,7 +8,7 @@ export function GroupsPage() {
   const [results, setResults] = useState<GroupSearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [manualId, setManualId] = useState("group_12345");
+  const [manualId, setManualId] = useState("");
 
   const search = async () => {
     setLoading(true);
@@ -25,8 +25,10 @@ export function GroupsPage() {
 
   const addManual = async () => {
     try {
-      await api.addFeed(manualId);
-      alert("Added to feed (if group ID is valid).");
+      const match = manualId.match(/(?:https?:\/\/)?t\.me\/(?:s\/)?([^/?#]+)/i);
+      const groupId = match?.[1] || manualId.trim();
+      await api.addFeed(groupId, match ? `https://t.me/${match[1]}` : "");
+      alert("Group added to your feed. Posting and message access require manual Telegram interaction.");
     } catch (e) {
       alert(e instanceof Error ? e.message : "Invalid group ID");
     }
@@ -36,7 +38,7 @@ export function GroupsPage() {
     <div>
       <h2 className="page-title">Groups</h2>
       <div className="card">
-        <label className="label">Search groups...</label>
+        <label className="label">Mock group search (demo catalog)</label>
         <div className="row">
           <input className="input" value={q} onChange={(e) => setQ(e.target.value)} />
           <button type="button" className="btn btn-primary" onClick={() => void search()} disabled={loading}>
@@ -45,7 +47,8 @@ export function GroupsPage() {
         </div>
       </div>
       <div className="card">
-        <label className="label">Group ID (manual)</label>
+        <label className="label">Add Telegram group manually</label>
+        <p className="muted">Paste a group ID or t.me URL. On Telegram Web, choose Add or Skip when prompted.</p>
         <div className="row">
           <input className="input" value={manualId} onChange={(e) => setManualId(e.target.value)} />
           <button type="button" className="btn btn-primary" onClick={() => void addManual()}>

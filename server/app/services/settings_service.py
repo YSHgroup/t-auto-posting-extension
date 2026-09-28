@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.identity import installation_key_for_session
 from app.models.entities import AISettings, AppSettings, SchedulerSettings
 from app.schemas.scheduler import SchedulerUpdate
 from app.services.scheduler_service import SchedulerService
@@ -12,9 +13,10 @@ class SettingsService:
 
     def get_settings(self) -> dict:
         settings = get_settings()
-        ai = self.db.query(AISettings).filter(AISettings.id == 1).first()
-        app = self.db.query(AppSettings).filter(AppSettings.id == 1).first()
-        sched = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == 1).first()
+        key = installation_key_for_session(self.db)
+        ai = self.db.query(AISettings).filter(AISettings.id == key).first()
+        app = self.db.query(AppSettings).filter(AppSettings.id == key).first()
+        sched = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == key).first()
         return {
             "data_mode": app.data_mode if app else settings.data_mode,
             "ai_provider": ai.provider if ai else settings.ai_provider,
@@ -27,6 +29,7 @@ class SettingsService:
         }
 
     def update_settings(self, payload: dict) -> dict:
+        key = installation_key_for_session(self.db)
         if payload.get("data_mode") not in (None, "mock"):
             raise ValueError("Only mock data mode is currently implemented")
         scheduler_keys = {
@@ -39,16 +42,14 @@ class SettingsService:
         if scheduler_payload:
             SchedulerService(self.db).update_scheduler(SchedulerUpdate(**scheduler_payload))
 
-        ai = self.db.query(AISettings).filter(AISettings.id == 1).first()
+        ai = self.db.query(AISettings).filter(AISettings.id == key).first()
         if not ai:
-            ai = AISettings(id=1)
+            ai = AISettings(id=key)
             self.db.add(ai)
-        app = self.db.query(AppSettings).filter(AppSettings.id == 1).first()
+        app = self.db.query(AppSettings).filter(AppSettings.id == key).first()
         if not app:
-            app = AppSettings(id=1)
+            app = AppSettings(id=key)
             self.db.add(app)
-        sched = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == 1).first()
-
         if "ai_provider" in payload:
             ai.provider = payload["ai_provider"]
         if "openai_model" in payload:

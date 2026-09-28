@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
+from app.core.identity import installation_key_for_session
 from app.models.entities import AISettings
 from app.providers.ai.base import AIProvider
 from app.providers.ai.claude_provider import ClaudeProvider
@@ -10,7 +11,11 @@ from app.providers.ai.openai_provider import OpenAIProvider
 
 def get_ai_provider(db: Session) -> AIProvider:
     settings = get_settings()
-    ai_settings = db.query(AISettings).filter(AISettings.id == 1).first()
+    ai_settings = (
+        db.query(AISettings)
+        .filter(AISettings.id == installation_key_for_session(db))
+        .first()
+    )
     provider = ai_settings.provider if ai_settings else settings.ai_provider
 
     if provider == "anthropic" and settings.anthropic_api_key:

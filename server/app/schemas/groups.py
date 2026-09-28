@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from app.schemas.common import ORMModel
 
@@ -26,6 +26,7 @@ class GroupDetail(ORMModel):
     member_count: int
     categories: list[str]
     joined: bool
+    telegram_url: str
 
 
 class GroupMessageOut(BaseModel):
@@ -39,6 +40,23 @@ class GroupMessageOut(BaseModel):
 class SimulatedReplyRequest(BaseModel):
     username: str
     message: str
+    post_id: UUID | None = None
+
+
+class TelegramGroupIntake(BaseModel):
+    group_id: str
+    group_name: str = ""
+    source_url: str = ""
+    action: str
+
+
+class ObservedMessagesRequest(BaseModel):
+    messages: list[str] = Field(max_length=500)
+
+
+class ManualReplyRequest(BaseModel):
+    username: str = Field(min_length=1, max_length=128)
+    message: str = Field(min_length=1, max_length=10000)
     post_id: UUID | None = None
 
 

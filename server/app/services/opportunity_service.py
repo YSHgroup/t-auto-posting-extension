@@ -1,7 +1,8 @@
 from sqlalchemy.orm import Session
 
-from app.models.entities import Group, Opportunity
+from app.models.entities import Group, ObservedGroupMessage, Opportunity
 from app.providers.ai.factory import get_ai_provider
+from app.providers.data.base import ProviderGroup, ProviderMessage
 from app.providers.data.factory import get_data_provider
 from app.services.group_service import GroupService
 
@@ -14,9 +15,41 @@ class OpportunityService:
     async def scan_group(self, external_id: str) -> list[dict]:
         g = GroupService(self.db)._ensure_group(external_id)
         pg = self.data.get_group(external_id)
+        observed = (
+            self.db.query(ObservedGroupMessage)
+            .filter(ObservedGroupMessage.group_id == g.id)
+            .order_by(ObservedGroupMessage.sequence_num.desc())
+            .limit(500)
+            .all()
+        )
+        messages = (
+            [
+                ProviderMessage(
+                    id=str(message.id),
+                    user_id=None,
+                    username=message.username,
+                    content=message.content,
+                    sequence_num=message.sequence_num,
+                    created_at=message.created_at,
+                )
+                for message in reversed(observed)
+            ]
+            if observed
+            else self.data.get_messages(external_id, limit=500)
+        )
+        if not pg and observed:
+            pg = ProviderGroup(
+                id=g.external_id,
+                name=g.name,
+                username=g.username,
+                description=g.description,
+                member_count=g.member_count,
+                categories=list(g.categories or []),
+                keywords=list(g.keywords or []),
+                joined=g.joined,
+            )
         if not pg:
-            raise ValueError("Group not found")
-        messages = self.data.get_messages(external_id, limit=500)
+            raise ValueError("Import up to 500 message texts before scanning this real Telegram group.")
         ai = get_ai_provider(self.db)
         result = await ai.analyze_opportunities(pg, messages)
         self.db.query(Opportunity).filter(Opportunity.group_id == g.id).delete(

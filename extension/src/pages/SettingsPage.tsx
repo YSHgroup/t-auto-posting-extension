@@ -19,6 +19,7 @@ export function SettingsPage() {
       <h2 className="page-title">Settings</h2>
       <div className="card">
         <h3>Backend</h3>
+        <p className="muted">A private installation identity is used to keep this browser profile's data separate.</p>
         <label className="label">API Server URL</label>
         <input className="input" value={url} onChange={(e) => setUrl(e.target.value)} />
         <div className="row" style={{ marginTop: 8 }}>
@@ -50,7 +51,8 @@ export function SettingsPage() {
       </div>
       <div className="card">
         <h3>Data</h3>
-        <p>Data Mode: ● Mock ○ External (External not implemented)</p>
+        <p>Telegram Web integration: user-confirmed group intake only. Message import, sending, and deletion are manual; the extension does not control Telegram.</p>
+        <p>Mock provider remains available for local demonstrations.</p>
         <button type="button" className="btn btn-danger" onClick={() => void api.resetDemo().then(() => alert("Demo data reset"))}>
           Reset demo data
         </button>

@@ -8,6 +8,10 @@ from app.schemas.common import ORMModel
 
 class FeedItemCreate(BaseModel):
     group_id: str
+    group_name: str | None = None
+    group_username: str | None = None
+    group_description: str | None = None
+    group_url: str | None = None
 
 
 class FeedItemUpdate(BaseModel):
@@ -36,5 +40,6 @@ class FeedItemOut(ORMModel):
     next_scheduled_at: datetime | None
     group_name: str | None = None
     group_external_id: str | None = None
+    group_telegram_url: str | None = None
     selected_post_id: UUID | None = None
     selected_post_title: str | None = None

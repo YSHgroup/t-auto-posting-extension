@@ -4,7 +4,7 @@ export default defineManifest({
   manifest_version: 3,
   name: "Telegram Auto Bot",
   version: "0.1.0",
-  description: "Independent Telegram automation assistant (mock data mode).",
+  description: "Telegram group intake and manual posting assistant.",
   permissions: ["storage", "sidePanel"],
   host_permissions: ["http://localhost:8000/*", "https://*/*"],
   action: {
@@ -17,4 +17,11 @@ export default defineManifest({
     service_worker: "src/background.ts",
     type: "module",
   },
+  content_scripts: [
+    {
+      matches: ["https://web.telegram.org/*"],
+      js: ["src/telegram-intake.ts"],
+      run_at: "document_idle",
+    },
+  ],
 });

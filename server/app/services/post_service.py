@@ -3,8 +3,9 @@ from uuid import UUID
 
 from sqlalchemy.orm import Session
 
-from app.models.entities import FeedItem, Group, Post, PostAssignment
+from app.models.entities import FeedItem, Group, GroupAnalysis, Post, PostAssignment
 from app.providers.ai.factory import get_ai_provider
+from app.providers.data.base import ProviderGroup
 from app.providers.data.factory import get_data_provider
 from app.schemas.posts import PostCreate, PostOut, PostUpdate, RecommendPostRequest, RecommendPostResponse
 
@@ -82,14 +83,26 @@ class PostService:
             raise ValueError("Group not found")
         pg = self.data.get_group(group.external_id)
         if not pg:
-            raise ValueError("Group not found in provider")
+            observed = self.db.query(GroupAnalysis).filter(
+                GroupAnalysis.group_id == group.id
+            ).order_by(GroupAnalysis.created_at.desc()).first()
+            if not observed:
+                raise ValueError("Analyze this group using imported message evidence before requesting recommendations")
+            pg = ProviderGroup(
+                id=group.external_id,
+                name=group.name,
+                username=group.username,
+                description=group.description,
+                member_count=group.member_count,
+                categories=list(group.categories or []),
+                keywords=list(group.keywords or []),
+                joined=group.joined,
+            )
         posts = self.db.query(Post).filter(Post.enabled.is_(True)).all()
         post_dicts = [
             {"id": str(p.id), "title": p.title, "post_type": p.post_type, "content": p.content[:200]}
             for p in posts
         ]
-        from app.models.entities import GroupAnalysis
-
         analysis = (
             self.db.query(GroupAnalysis)
             .filter(GroupAnalysis.group_id == group.id)
