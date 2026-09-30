@@ -6,7 +6,8 @@ PostgreSQL with UUID primary keys where noted.
 
 | Table | Purpose |
 |-------|---------|
-| `groups` | Shared group metadata and user-confirmed Telegram URL |
+| `groups` | Group metadata and Telegram URL, private to the username owner |
+| `accounts` | Username entered by a user; used as data-scope key, not verified authentication |
 | `group_messages` | Legacy demo-message table; ignored by manual provider |
 | `observed_group_messages` | Private, manually copied message text, scoped to extension installation |
 | `users` | Reserved for authenticated accounts; installation UUID is currently not account authentication |
@@ -24,7 +25,7 @@ PostgreSQL with UUID primary keys where noted.
 | `app_settings` | Per-installation data mode |
 | `skipped_groups` | Per-installation record of groups explicitly skipped in Telegram Web |
 
-Application-owned tables (`group_analysis`, `posts`, `feed_items`, assignments, history,
+Application-owned tables (`groups`, `group_analysis`, `posts`, `feed_items`, assignments, history,
 replies, notifications, scheduler/bot state, opportunities, AI/app settings, copied
 observations, and skipped groups) carry `owner_id`, containing the normalized username
 entered by the user. API requests bind `X-Telegram-Username` to SQLAlchemy tenant criteria.

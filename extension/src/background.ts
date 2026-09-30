@@ -2,7 +2,7 @@ chrome.sidePanel.setPanelBehavior({ openPanelOnActionClick: true }).catch(() => 
 
 const SETTINGS_KEY = "telegram_auto_bot_settings";
 const INSTALLATION_KEY = "telegram_auto_bot_installation_id";
-const NAVIGATION_KEY = "telegram_auto_bot_navigation";
+const NAVIGATION_KEY_PREFIX = "telegram_auto_bot_navigation:";
 const NAVIGATION_ALARM = "telegram-auto-bot-group-navigation";
 
 type NavigationState = {
@@ -18,6 +18,10 @@ type ScheduledFeedItem = {
 	group_name?: string;
 	group_telegram_url?: string | null;
 };
+
+function navigationKey(telegramUsername: string): string {
+	return `${NAVIGATION_KEY_PREFIX}${telegramUsername}`;
+}
 
 async function loadIdentity(): Promise<{ base: string; installationId: string; telegramUsername: string }> {
 	const stored = await chrome.storage.local.get([SETTINGS_KEY, INSTALLATION_KEY]);
@@ -71,8 +75,15 @@ async function notify(title: string, message: string): Promise<void> {
 }
 
 async function runNavigationTick(): Promise<void> {
-	const stored = await chrome.storage.local.get([NAVIGATION_KEY]);
-	const state = stored[NAVIGATION_KEY] as NavigationState | undefined;
+	let identity: Awaited<ReturnType<typeof loadIdentity>>;
+	try {
+		identity = await loadIdentity();
+	} catch {
+		return;
+	}
+	const key = navigationKey(identity.telegramUsername);
+	const stored = await chrome.storage.local.get([key]);
+	const state = stored[key] as NavigationState | undefined;
 	if (!state?.enabled) return;
 
 	const scheduler = await apiRequest<{
@@ -96,7 +107,7 @@ async function runNavigationTick(): Promise<void> {
 	const feed = await apiRequest<ScheduledFeedItem[]>("/feed");
 	const items = feed.filter((item) => item.enabled).sort((a, b) => a.order_index - b.order_index);
 	if (!items.length) {
-		await chrome.storage.local.set({ [NAVIGATION_KEY]: { ...state, lastRunAt: new Date(now).toISOString() } });
+		await chrome.storage.local.set({ [key]: { ...state, lastRunAt: new Date(now).toISOString() } });
 		await notify("Telegram group navigation", "No enabled groups are currently in your feed.");
 		return;
 	}
@@ -108,7 +119,7 @@ async function runNavigationTick(): Promise<void> {
 		cursor: (index + 1) % items.length,
 		lastRunAt: new Date(now).toISOString(),
 	};
-	await chrome.storage.local.set({ [NAVIGATION_KEY]: nextState });
+	await chrome.storage.local.set({ [key]: nextState });
 
 	if (!item.group_telegram_url) {
 		await notify("Telegram group needs a link", `${item.group_name || "Feed group"} has no saved Telegram URL.`);
@@ -166,15 +177,23 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 	if (sender.id === chrome.runtime.id && message?.type === "telegram-auto-bot-navigation") {
 		void (async () => {
 			if (message.action === "start") {
-				await loadIdentity();
-				await chrome.storage.local.set({ [NAVIGATION_KEY]: { enabled: true, cursor: 0, lastRunAt: null } satisfies NavigationState });
+				const identity = await loadIdentity();
+				await chrome.storage.local.set({
+					[navigationKey(identity.telegramUsername)]: {
+						enabled: true,
+						cursor: 0,
+						lastRunAt: null,
+					} satisfies NavigationState,
+				});
 				ensureNavigationAlarm();
 				sendResponse({ ok: true, enabled: true });
 				return;
 			}
-			const stored = await chrome.storage.local.get([NAVIGATION_KEY]);
-			const current = stored[NAVIGATION_KEY] as NavigationState | undefined;
-			await chrome.storage.local.set({ [NAVIGATION_KEY]: { ...(current || {}), enabled: false } });
+			const identity = await loadIdentity();
+			const key = navigationKey(identity.telegramUsername);
+			const stored = await chrome.storage.local.get([key]);
+			const current = stored[key] as NavigationState | undefined;
+			await chrome.storage.local.set({ [key]: { ...(current || {}), enabled: false } });
 			sendResponse({ ok: true, enabled: false });
 		})().catch((error: unknown) => sendResponse({ ok: false, error: error instanceof Error ? error.message : "Navigation control failed" }));
 		return true;

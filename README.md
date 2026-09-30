@@ -107,6 +107,7 @@ npm test
 - Configure authentication (hooks reserved for Phase 7 hardening)
 - Run API behind a reverse proxy; keep secrets in environment / vault
 - User-owned feed, posts, history, notifications, analyses, and scheduler state are separated by the Telegram username manually entered in Settings. Usernames are not verified; add trusted sign-in/pairing before public multi-tenant deployment.
+- The side panel now requires a username at first launch, and group metadata is also scoped per username by migration `005_private_groups`.
 
 ## Changing backend URL
 

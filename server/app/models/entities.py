@@ -49,11 +49,11 @@ class HistoryStatus(str, enum.Enum):
     failed = "failed"
 
 
-class Group(Base):
+class Group(InstallationScoped, Base):
     __tablename__ = "groups"
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    external_id: Mapped[str] = mapped_column(String(64), unique=True, index=True)
+    external_id: Mapped[str] = mapped_column(String(64), index=True)
     name: Mapped[str] = mapped_column(String(255))
     username: Mapped[str] = mapped_column(String(128), index=True)
     description: Mapped[str] = mapped_column(Text, default="")
@@ -71,6 +71,10 @@ class Group(Base):
     messages: Mapped[list["GroupMessage"]] = relationship(back_populates="group")
     analyses: Mapped[list["GroupAnalysis"]] = relationship(back_populates="group")
     feed_items: Mapped[list["FeedItem"]] = relationship(back_populates="group")
+
+    __table_args__ = (
+        UniqueConstraint("owner_id", "external_id", name="uq_groups_owner_external_id"),
+    )
 
 
 class GroupMessage(Base):

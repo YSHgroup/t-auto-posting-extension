@@ -24,7 +24,7 @@ Chrome side panel + Telegram Web Add/Skip prompt
 
 - React + TypeScript side panel with Dashboard, Groups, Feed, Posts, Scheduler, History, Notifications, Opportunities, and Settings pages.
 - Configurable backend URL.
-- The user manually enters a Telegram username in Settings. The extension sends its normalized value as `X-Telegram-Username`; a separate installation UUID remains only as technical installation metadata.
+- First run is gated by a required Telegram username entry. The extension sends its normalized value as `X-Telegram-Username`; a separate installation UUID remains only as technical installation metadata.
 - A content script injected only on `https://web.telegram.org/*`.
 - The Telegram prompt asks the user to confirm a group identity and choose **Add to feed** or **Skip this group**. Both choices are saved, and the prompt is suppressed after a decision for that installation.
 - The prompt does not inspect Telegram chat messages or click Telegram controls.
@@ -39,8 +39,8 @@ Chrome side panel + Telegram Web Add/Skip prompt
 - OpenAI and Anthropic Claude AI provider abstractions; API keys remain on the server.
 - Manual-only data provider; it returns only groups explicitly added by a user and message text explicitly imported under that username.
 - Demo seed, simulated replies, mock search, and demo reset are disabled. Existing legacy/demo group rows are tagged as legacy by the migration and are not returned by the active provider.
-- Per-username scoping for posts, feed, analyses, assignments, history, replies, notifications, opportunities, scheduler/bot state, AI/app settings, skipped-group decisions, and manually imported message observations.
-- Migrations `002_installation_ownership`, `003_manual_data_only`, and `004_username_accounts` add ownership tables/columns and create an account row for each entered username. Existing owner IDs cannot be mapped to usernames automatically; those rows remain under their prior/legacy owner.
+- Per-username scoping for group metadata, posts, feed, analyses, assignments, history, replies, notifications, opportunities, scheduler/bot state, AI/app settings, skipped-group decisions, and manually imported message observations.
+- Migrations `002_installation_ownership`, `003_manual_data_only`, `004_username_accounts`, and `005_private_groups` add ownership tables/columns, create an account row per entered username, and allow each username to store the same Telegram group independently. Existing owner IDs cannot be mapped to usernames automatically; those rows remain under their prior/legacy owner.
 - User-entered group IDs and Telegram URLs can be placed in the feed.
 - Real group analysis and opportunity classification can use message text only after the user manually imports it.
 - A user-confirmed manual send can be recorded in the current installation's history. The server does not verify Telegram delivery.
@@ -83,7 +83,7 @@ The extension does not store OpenAI keys, Anthropic keys, or database credential
 1. Create the root `.env` from `.env.example` and set the database URL and whichever AI provider/key you want to use. Keep secrets in the server environment only.
 2. Start PostgreSQL. For a local backend, start the Compose `db` service; alternatively use a PostgreSQL server you manage.
 3. From `server`, create/activate a Python environment and install the project dependencies (including the development extra if you plan to run tests).
-4. From `server`, apply Alembic migrations with `alembic upgrade head` (includes `004_username_accounts`).
+4. From `server`, apply Alembic migrations with `alembic upgrade head` (includes `004_username_accounts` and `005_private_groups`).
 5. Start FastAPI with Uvicorn on port 8000 (or your chosen port).
 6. Visit `/docs` on the API host to inspect the generated OpenAPI documentation.
 
@@ -91,7 +91,7 @@ The extension does not store OpenAI keys, Anthropic keys, or database credential
 
 1. From `extension`, install npm dependencies and create the production extension build.
 2. In `chrome://extensions`, enable Developer mode and load `extension/dist` as an unpacked extension.
-3. Open the extension side panel and use Settings to enter your Telegram username and backend URL.
+3. Open the extension side panel, enter your Telegram username on the required first-run screen, then configure the backend URL in Settings.
 4. Ensure the API is reachable from the extension. FastAPI allows Chrome extension origins using a Chrome-extension origin regex; continue to use HTTPS and restrict origins appropriately in production.
 
 ### Data initialization

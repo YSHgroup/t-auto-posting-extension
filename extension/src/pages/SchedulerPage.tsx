@@ -3,6 +3,8 @@ import { api } from "../services/api";
 import type { BotStatus, SchedulerSettings } from "../types";
 
 const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+const SETTINGS_KEY = "telegram_auto_bot_settings";
+const NAVIGATION_KEY_PREFIX = "telegram_auto_bot_navigation:";
 
 export function SchedulerPage() {
   const [sched, setSched] = useState<SchedulerSettings | null>(null);
@@ -17,9 +19,14 @@ export function SchedulerPage() {
 
   useEffect(() => {
     void load();
-    chrome.storage.local.get(["telegram_auto_bot_navigation"], (stored) => {
-      const state = stored.telegram_auto_bot_navigation as { enabled?: boolean } | undefined;
-      setNavigationEnabled(Boolean(state?.enabled));
+    chrome.storage.local.get([SETTINGS_KEY], (stored) => {
+      const settings = stored[SETTINGS_KEY] as { telegramUsername?: string } | undefined;
+      const username = (settings?.telegramUsername || "").trim().replace(/^@/, "").toLowerCase();
+      if (!username) return;
+      chrome.storage.local.get([`${NAVIGATION_KEY_PREFIX}${username}`], (navigation) => {
+        const state = navigation[`${NAVIGATION_KEY_PREFIX}${username}`] as { enabled?: boolean } | undefined;
+        setNavigationEnabled(Boolean(state?.enabled));
+      });
     });
   }, []);
 
