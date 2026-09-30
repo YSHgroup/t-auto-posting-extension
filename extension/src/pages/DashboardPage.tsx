@@ -25,9 +25,14 @@ export function DashboardPage() {
   }, []);
 
   const toggleBot = async (start: boolean) => {
-    const b = start ? await api.startBot() : await api.stopBot();
-    setBot(b);
-    await refresh();
+    try {
+      setError(null);
+      const b = start ? await api.startBot() : await api.stopBot();
+      setBot(b);
+      await refresh();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "Bot action failed");
+    }
   };
 
   return (
@@ -59,9 +64,10 @@ export function DashboardPage() {
         <p className={bot?.state === "RUNNING" ? "status-running" : "status-stopped"}>
           {bot?.state === "RUNNING" ? "● RUNNING" : "○ STOPPED"}
         </p>
+        <p className="muted">Automatic Telegram posting is unavailable in manual data mode. Copy/send posts yourself from Feed and record the send.</p>
         <div className="row">
-          <button type="button" className="btn btn-primary" onClick={() => void toggleBot(true)}>
-            START BOT
+          <button type="button" className="btn btn-primary" disabled title="Automatic Telegram posting is disabled">
+            AUTO-POST UNAVAILABLE
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => void toggleBot(false)}>
             STOP BOT

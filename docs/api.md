@@ -21,6 +21,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 | PUT | `/feed/{id}` | Update order, enabled, manual reorder |
 | DELETE | `/feed/{id}` | Remove from feed |
 | POST | `/feed/{id}/record-manual-post` | Record a user-confirmed manual send (not delivery-verified) |
+| GET | `/feed/{id}/imported-message-count` | Count user-imported message entries since last recorded manual send; not live Telegram data |
 | POST | `/feed/reorder` | Bulk reorder |
 | GET | `/posts` | List posts |
 | POST | `/posts` | Create post |
@@ -48,5 +49,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 Every `/api` route other than `/health` requires `X-Telegram-Username`, entered manually by the user in Settings. It scopes user-owned data by normalized username and creates an account row if needed. This header is not verified authentication: callers can claim another username. `X-Installation-ID` is optional installation metadata, not the data ownership key.
 
 Real Telegram message retrieval, message counting, posting, and deletion are not API operations. The manual-send endpoint records the user's confirmation only; it does not verify delivery.
+
+The extension's scheduled navigator calls the imported-message-count endpoint at navigation time. The returned count is based only on rows explicitly imported by the user after the latest recorded manual send for that feed item; it cannot report live Telegram message activity.
 
 Analysis and recommendation requests require a valid OpenAI or Anthropic key on the server. Missing keys return HTTP 503; mock AI fallback is disabled.

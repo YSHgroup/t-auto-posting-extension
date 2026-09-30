@@ -110,7 +110,6 @@ class GroupService:
                 keywords=[],
                 joined=False,
                 data_origin="manual",
-                data_origin="manual",
             )
             self.db.add(group)
             self.db.flush()

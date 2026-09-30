@@ -29,6 +29,7 @@ Chrome side panel + Telegram Web Add/Skip prompt
 - The Telegram prompt asks the user to confirm a group identity and choose **Add to feed** or **Skip this group**. Both choices are saved, and the prompt is suppressed after a decision for that installation.
 - The prompt does not inspect Telegram chat messages or click Telegram controls.
 - Feed offers an Open Telegram link and a Copy selected post action. The user reviews, sends, and if needed deletes messages manually.
+- While Chrome is open, Scheduler can navigate through enabled Telegram feed links in order using Chrome alarms, and notify the count of manually imported message entries since the last recorded manual send. It does not post or inspect Telegram.
 - Group Detail accepts up to 500 message lines that the user manually copies from Telegram.
 - Group Detail also lets the user manually log a copied reply to create a private notification.
 
@@ -60,6 +61,7 @@ Chrome side panel + Telegram Web Add/Skip prompt
 | Real Telegram replies/notifications | Manual copied-reply logging only; no reply monitoring |
 | Real opportunity discovery | Runs on manually imported text; author attribution requires an `@username: message` prefix |
 | Auto Mode | Disabled for the manual provider; it does not operate Telegram Web |
+| Scheduled group navigation | While Chrome is open, opens enabled Telegram URLs in feed order during saved work hours and reports manually imported message counts |
 
 ## 3. Important identity and security limitation
 

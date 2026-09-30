@@ -73,6 +73,8 @@ No groups, messages, users, posts, replies, or opportunities are seeded. Add gro
 
 The extension content script runs only on `web.telegram.org` and asks whether to add or skip the current group. For real group analysis, manually copy text into Group Detail (up to 500 messages). Feed provides an Open Telegram link and Copy selected post action; send and any deletion are performed manually by the user. Use **Record manual send** after sending, and **Log a copied reply** for replies you want in Notifications. The extension does not access Telegram chats or verify delivery. Automatic posting is disabled.
 
+The Scheduler page can run **scheduled group navigation**: while Chrome is open, it opens enabled Feed links in order at the configured interval during selected workdays/hours and notifies with the number of message entries manually imported since the last recorded manual send. This is an imported-data count, not a live Telegram count. It does not post, read messages, or delete messages.
+
 ## Tests
 
 ```bash

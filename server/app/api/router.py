@@ -154,6 +154,14 @@ def record_manual_post(item_id: UUID, db: Session = Depends(get_db)):
         raise HTTPException(400, str(e)) from e
 
 
+@api_router.get("/feed/{item_id}/imported-message-count")
+def imported_message_count(item_id: UUID, db: Session = Depends(get_db)):
+    try:
+        return FeedService(db).imported_message_count(item_id)
+    except ValueError as e:
+        raise HTTPException(404, str(e)) from e
+
+
 @api_router.post("/feed/reorder", response_model=list[FeedItemOut])
 def reorder_feed(payload: FeedReorderRequest, db: Session = Depends(get_db)):
     return FeedService(db).reorder(payload)

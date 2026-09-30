@@ -72,6 +72,10 @@ export const api = {
   deleteFeed: (id: string) => request<{ ok: boolean }>(`/feed/${id}`, { method: "DELETE" }),
   recordManualPost: (id: string) =>
     request<{ ok: boolean; history_id: string; posted_at: string }>(`/feed/${id}/record-manual-post`, { method: "POST" }),
+  importedMessageCount: (id: string) =>
+    request<{ imported_message_count: number; since: string | null; basis: string }>(
+      `/feed/${id}/imported-message-count`,
+    ),
   reorderFeed: (items: { id: string; order_index: number }[]) =>
     request<FeedItem[]>("/feed/reorder", { method: "POST", body: JSON.stringify({ items }) }),
   listPosts: () => request<Post[]>("/posts"),

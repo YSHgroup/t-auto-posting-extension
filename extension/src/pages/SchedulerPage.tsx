@@ -7,6 +7,8 @@ const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 export function SchedulerPage() {
   const [sched, setSched] = useState<SchedulerSettings | null>(null);
   const [bot, setBot] = useState<BotStatus | null>(null);
+  const [navigationEnabled, setNavigationEnabled] = useState(false);
+  const [navigationError, setNavigationError] = useState<string | null>(null);
 
   const load = async () => {
     setSched(await api.getScheduler());
@@ -15,12 +17,34 @@ export function SchedulerPage() {
 
   useEffect(() => {
     void load();
+    chrome.storage.local.get(["telegram_auto_bot_navigation"], (stored) => {
+      const state = stored.telegram_auto_bot_navigation as { enabled?: boolean } | undefined;
+      setNavigationEnabled(Boolean(state?.enabled));
+    });
   }, []);
 
   const save = async () => {
     if (!sched) return;
     await api.updateScheduler(sched);
     alert("Scheduler saved");
+  };
+
+  const controlNavigation = async (action: "start" | "stop") => {
+    setNavigationError(null);
+    chrome.runtime.sendMessage(
+      { type: "telegram-auto-bot-navigation", action },
+      (response: { ok: boolean; error?: string } | undefined) => {
+        if (chrome.runtime.lastError) {
+          setNavigationError(chrome.runtime.lastError.message);
+          return;
+        }
+        if (!response?.ok) {
+          setNavigationError(response?.error || "Could not update scheduled navigation.");
+          return;
+        }
+        setNavigationEnabled(action === "start");
+      },
+    );
   };
 
   const toggleDay = (dayIndex: number) => {
@@ -37,8 +61,8 @@ export function SchedulerPage() {
     <div>
       <h2 className="page-title">Scheduler</h2>
       <div className="card">
-        <strong>Telegram Web safety boundary</strong>
-        <p>Automatic mode is disabled for real Telegram groups. Real sending, reading, message counting, and deletion are not automated. Use Feed to open Telegram, copy the selected text, send it yourself, manually remove any earlier post if needed, then record the manual send.</p>
+        <strong>Scheduled group navigation (no posting)</strong>
+        <p>When enabled, the extension opens one enabled feed group per interval in feed order during your selected days and hours. It does not read Telegram messages or send/delete posts. The notification count includes only messages you manually imported into this app.</p>
       </div>
       <div className="card">
         <label>
@@ -48,7 +72,7 @@ export function SchedulerPage() {
             disabled
             onChange={(e) => setSched({ ...sched, auto_mode: e.target.checked })}
           />{" "}
-          Auto Mode
+          Automatic Telegram posting (disabled)
         </label>
         <div className="row" style={{ marginTop: 12 }}>
           {DAYS.map((d, i) => (
@@ -87,18 +111,20 @@ export function SchedulerPage() {
         </button>
       </div>
       <div className="card">
-        <h3>BOT STATUS</h3>
-        <p className={bot?.state === "RUNNING" ? "status-running" : "status-stopped"}>
-          {bot?.state === "RUNNING" ? "● RUNNING" : "○ STOPPED"}
+        <h3>GROUP NAVIGATION STATUS</h3>
+        <p className={navigationEnabled ? "status-running" : "status-stopped"}>
+          {navigationEnabled ? "● RUNNING" : "○ STOPPED"}
         </p>
         <div className="row">
-          <button type="button" className="btn btn-primary" disabled>
-            ▶ REAL AUTO-POST UNAVAILABLE
+          <button type="button" className="btn btn-primary" onClick={() => void controlNavigation("start")} disabled={navigationEnabled}>
+            ▶ START GROUP NAVIGATION
           </button>
-          <button type="button" className="btn btn-ghost" onClick={() => void api.stopBot().then(setBot)}>
-            ■ STOP BOT
+          <button type="button" className="btn btn-ghost" onClick={() => void controlNavigation("stop")} disabled={!navigationEnabled}>
+            ■ STOP NAVIGATION
           </button>
         </div>
+        {navigationError && <p className="error">{navigationError}</p>}
+        {bot?.state === "RUNNING" && <p className="muted">Legacy server bot state is RUNNING; it cannot publish with manual data mode. Stop it with the API status control if needed.</p>}
       </div>
     </div>
   );

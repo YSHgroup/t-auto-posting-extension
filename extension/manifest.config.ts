@@ -5,8 +5,8 @@ export default defineManifest({
   name: "Telegram Auto Bot",
   version: "0.1.0",
   description: "Telegram group intake and manual posting assistant.",
-  permissions: ["storage", "sidePanel"],
-  host_permissions: ["http://localhost:8000/*", "https://*/*"],
+  permissions: ["storage", "sidePanel", "alarms", "tabs", "notifications"],
+  host_permissions: ["http://localhost:8000/*", "https://web.telegram.org/*", "https://t.me/*", "https://*/*"],
   action: {
     default_title: "Telegram Auto Bot",
   },

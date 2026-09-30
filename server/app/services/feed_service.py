@@ -5,7 +5,14 @@ from sqlalchemy.orm import Session
 from datetime import datetime
 from urllib.parse import urlparse
 
-from app.models.entities import FeedItem, Group, Post, PostAssignment, PostHistory
+from app.models.entities import (
+    FeedItem,
+    Group,
+    ObservedGroupMessage,
+    Post,
+    PostAssignment,
+    PostHistory,
+)
 from app.providers.data.factory import get_data_provider
 from app.schemas.feed import FeedItemCreate, FeedItemOut, FeedItemUpdate, FeedReorderRequest
 
@@ -178,6 +185,32 @@ class FeedService:
         post.usage_count += 1
         self.db.commit()
         return {"ok": True, "history_id": str(history.id), "posted_at": now.isoformat()}
+
+    def imported_message_count(self, item_id: UUID) -> dict:
+        item = self.db.query(FeedItem).filter(FeedItem.id == item_id).first()
+        if not item:
+            raise ValueError("Feed item not found")
+        last_manual_post = (
+            self.db.query(PostHistory)
+            .filter(
+                PostHistory.feed_item_id == item.id,
+                PostHistory.status == "success",
+                PostHistory.reason.like("User-confirmed manual send%"),
+            )
+            .order_by(PostHistory.posted_at.desc())
+            .first()
+        )
+        query = self.db.query(ObservedGroupMessage).filter(
+            ObservedGroupMessage.group_id == item.group_id
+        )
+        if last_manual_post:
+            query = query.filter(ObservedGroupMessage.created_at > last_manual_post.posted_at)
+        return {
+            "feed_item_id": str(item.id),
+            "imported_message_count": query.count(),
+            "since": last_manual_post.posted_at.isoformat() if last_manual_post else None,
+            "basis": "manually imported message entries; not a live Telegram count",
+        }
 
     def reorder(self, req: FeedReorderRequest) -> list[FeedItemOut]:
         for entry in req.items:
