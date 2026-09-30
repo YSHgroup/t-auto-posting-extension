@@ -31,6 +31,14 @@ alembic upgrade head
 uvicorn app.main:app --reload --port 8000
 ```
 
+### Database authentication troubleshooting
+
+If `alembic upgrade head` reports `password authentication failed for user "postgres"`, PostgreSQL is reachable but the credentials in the root `.env` do not match that server. Set `DATABASE_URL` to the actual PostgreSQL username, password, host, port, and database. The example URL uses `postgres` / `postgres` and is only correct for a fresh Compose database.
+
+For a fresh Compose database, run `docker compose up -d db` and use `postgresql+psycopg://postgres:postgres@localhost:5432/telegram_auto_bot`. If the Compose volume already existed, changing `POSTGRES_PASSWORD` in Compose does not change the password inside that existing database. Either update the database role password using the credentials you already have, or—only if the stored database data is disposable—remove the Compose volume and recreate it. Do not remove the volume if it contains data you need.
+
+On Windows, run Alembic from the `server` directory after confirming the root `.env` has the correct `DATABASE_URL`. If the password contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode those characters in the connection URL.
+
 ## Extension
 
 ```bash
