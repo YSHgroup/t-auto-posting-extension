@@ -6,10 +6,13 @@ const INSTALLATION_KEY = "telegram_auto_bot_installation_id";
 interface SettingsState {
   apiBaseUrl: string;
   installationId: string;
+  telegramUsername: string;
   connectionOk: boolean | null;
   load: () => Promise<void>;
   getInstallationId: () => Promise<string>;
   setApiBaseUrl: (url: string) => Promise<void>;
+  setTelegramUsername: (username: string) => Promise<void>;
+  getTelegramUsername: () => Promise<string>;
   testConnection: () => Promise<boolean>;
 }
 
@@ -33,39 +36,60 @@ export async function getInstallationId(): Promise<string> {
   return created;
 }
 
-async function readSettings(): Promise<string> {
-  const data = await storageGet<{ apiBaseUrl?: string }>(STORAGE_KEY);
-  return data?.apiBaseUrl || "http://localhost:8000";
+async function readSettings(): Promise<{ apiBaseUrl: string; telegramUsername: string }> {
+  const data = await storageGet<{ apiBaseUrl?: string; telegramUsername?: string }>(STORAGE_KEY);
+  return {
+    apiBaseUrl: data?.apiBaseUrl || "http://localhost:8000",
+    telegramUsername: data?.telegramUsername || "",
+  };
 }
 
-async function writeSettings(apiBaseUrl: string): Promise<void> {
-  await storageSet(STORAGE_KEY, { apiBaseUrl });
+async function writeSettings(patch: { apiBaseUrl?: string; telegramUsername?: string }): Promise<void> {
+  const data = await storageGet<{ apiBaseUrl?: string; telegramUsername?: string }>(STORAGE_KEY);
+  await storageSet(STORAGE_KEY, { ...data, ...patch });
+}
+
+export async function getTelegramUsername(): Promise<string> {
+  const data = await storageGet<{ telegramUsername?: string }>(STORAGE_KEY);
+  return (data?.telegramUsername || "").trim().replace(/^@/, "").toLowerCase();
 }
 
 export const useSettingsStore = create<SettingsState>((set, get) => ({
   apiBaseUrl: "http://localhost:8000",
   installationId: "",
+  telegramUsername: "",
   connectionOk: null,
   load: async () => {
-    const [url, installationId] = await Promise.all([readSettings(), getInstallationId()]);
-    set({ apiBaseUrl: url, installationId });
+    const [stored, installationId] = await Promise.all([readSettings(), getInstallationId()]);
+    set({ apiBaseUrl: stored.apiBaseUrl, telegramUsername: stored.telegramUsername, installationId });
   },
   getInstallationId,
   setApiBaseUrl: async (url: string) => {
-    await writeSettings(url);
+    await writeSettings({ apiBaseUrl: url });
     set({ apiBaseUrl: url, connectionOk: null });
   },
+  setTelegramUsername: async (value: string) => {
+    const username = value.trim().replace(/^@/, "").toLowerCase();
+    await writeSettings({ telegramUsername: username });
+    set({ telegramUsername: username, connectionOk: null });
+  },
+  getTelegramUsername,
   testConnection: async () => {
     try {
-      const [base, installationId] = await Promise.all([
+      const [base, installationId, telegramUsername] = await Promise.all([
         Promise.resolve(get().apiBaseUrl.replace(/\/$/, "")),
         getInstallationId(),
+        getTelegramUsername(),
       ]);
+      if (!telegramUsername) throw new Error("Enter your Telegram username in Settings first.");
       const res = await fetch(`${base}/api/health`, {
-        headers: { "X-Installation-ID": installationId },
+        headers: {
+          "X-Installation-ID": installationId,
+          "X-Telegram-Username": telegramUsername,
+        },
       });
       const ok = res.ok;
-      set({ connectionOk: ok, installationId });
+      set({ connectionOk: ok, installationId, telegramUsername });
       return ok;
     } catch {
       set({ connectionOk: false });

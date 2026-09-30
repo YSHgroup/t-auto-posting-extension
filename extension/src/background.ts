@@ -15,6 +15,14 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			await chrome.storage.local.set({ [INSTALLATION_KEY]: installationId });
 		}
 		const settings = stored[SETTINGS_KEY] as { apiBaseUrl?: string } | undefined;
+		const telegramUsername = (settings as { telegramUsername?: string } | undefined)?.telegramUsername
+			?.trim()
+			.replace(/^@/, "")
+			.toLowerCase();
+		if (!telegramUsername) {
+			sendResponse({ ok: false, error: "Enter your Telegram username in extension Settings first." });
+			return;
+		}
 		const base = (settings?.apiBaseUrl || "http://localhost:8000").replace(/\/$/, "");
 		const path = typeof message.path === "string" ? message.path : "";
 		if (path !== "/api/groups/intake" && !path.startsWith("/api/groups/intake-status/")) {
@@ -25,6 +33,7 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 			method: message.body ? "POST" : "GET",
 			headers: {
 				"X-Installation-ID": installationId,
+				"X-Telegram-Username": telegramUsername,
 				...(message.body ? { "Content-Type": "application/json" } : {}),
 			},
 			...(message.body ? { body: JSON.stringify(message.body) } : {}),

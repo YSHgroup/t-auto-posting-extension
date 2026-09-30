@@ -3,8 +3,9 @@ from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
-from app.core.identity import installation_key_for_session
+from app.core.identity import account_key_for_session
 from app.models.entities import BotState, SchedulerSettings
+from app.providers.data.factory import get_data_provider
 from app.schemas.scheduler import BotStatusOut, SchedulerOut, SchedulerUpdate
 
 
@@ -13,7 +14,7 @@ class SchedulerService:
         self.db = db
 
     def _get_scheduler(self) -> SchedulerSettings:
-        key = installation_key_for_session(self.db)
+        key = account_key_for_session(self.db)
         row = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == key).first()
         if not row:
             row = SchedulerSettings(id=key)
@@ -22,7 +23,7 @@ class SchedulerService:
         return row
 
     def _get_bot(self) -> BotState:
-        key = installation_key_for_session(self.db)
+        key = account_key_for_session(self.db)
         row = self.db.query(BotState).filter(BotState.id == key).first()
         if not row:
             row = BotState(id=key)
@@ -89,6 +90,11 @@ class SchedulerService:
         return BotStatusOut(state=b.state, current_feed_index=b.current_feed_index, last_error=b.last_error)
 
     def start_bot(self) -> BotStatusOut:
+        provider = get_data_provider(self.db)
+        if not getattr(provider, "supports_automation", False):
+            raise ValueError(
+                "Automatic Telegram posting is unavailable. Use manual copy/send and record the action in Feed."
+            )
         b = self._get_bot()
         b.state = "RUNNING"
         b.last_error = None

@@ -17,10 +17,13 @@ import { useSettingsStore } from "../stores/settingsStore";
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const base = useSettingsStore.getState().apiBaseUrl.replace(/\/$/, "");
   const installationId = await useSettingsStore.getState().getInstallationId();
+  const telegramUsername = await useSettingsStore.getState().getTelegramUsername();
+  if (!telegramUsername) throw new Error("Enter your Telegram username in Settings first.");
   const res = await fetch(`${base}/api${path}`, {
     headers: {
       "Content-Type": "application/json",
       "X-Installation-ID": installationId,
+      "X-Telegram-Username": telegramUsername,
       ...(init?.headers || {}),
     },
     ...init,
@@ -99,5 +102,4 @@ export const api = {
   updateSettings: (body: Record<string, unknown>) =>
     request<Record<string, unknown>>("/settings", { method: "PUT", body: JSON.stringify(body) }),
   testConnection: () => request<{ ok: boolean; message: string }>("/settings/test-connection", { method: "POST" }),
-  resetDemo: () => request<{ ok: boolean }>("/settings/reset-demo", { method: "POST" }),
 };

@@ -7,15 +7,15 @@ PostgreSQL with UUID primary keys where noted.
 | Table | Purpose |
 |-------|---------|
 | `groups` | Shared group metadata and user-confirmed Telegram URL |
-| `group_messages` | Optional cache of messages (mock sync) |
+| `group_messages` | Legacy demo-message table; ignored by manual provider |
 | `observed_group_messages` | Private, manually copied message text, scoped to extension installation |
-| `users` | Mock/app users |
+| `users` | Reserved for authenticated accounts; installation UUID is currently not account authentication |
 | `group_analysis` | Latest and historical AI analysis per group |
 | `posts` | User-authored post templates |
 | `feed_items` | Ordered feed membership + enable flag |
 | `post_assignments` | Selected post per feed item (`selected_by`) |
 | `post_history` | Every post attempt (success/skipped/failed) |
-| `replies` | Simulated replies to posts |
+| `replies` | User-copied replies logged manually |
 | `notifications` | Derived from replies / system events |
 | `scheduler_settings` | Per-installation automation config |
 | `bot_state` | Per-installation state + `current_feed_index` |
@@ -26,9 +26,9 @@ PostgreSQL with UUID primary keys where noted.
 
 Application-owned tables (`group_analysis`, `posts`, `feed_items`, assignments, history,
 replies, notifications, scheduler/bot state, opportunities, AI/app settings, copied
-observations, and skipped groups) carry `owner_id`. API requests bind an installation UUID
-from `X-Installation-ID` to SQLAlchemy tenant criteria. The UUID isolates extension
-profiles but is not verified authentication.
+observations, and skipped groups) carry `owner_id`, containing the normalized username
+entered by the user. API requests bind `X-Telegram-Username` to SQLAlchemy tenant criteria.
+Usernames are not verified authentication credentials.
 
 ## Relationships
 

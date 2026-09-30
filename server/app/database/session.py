@@ -24,7 +24,7 @@ def scope_installation_queries(execute_state):
         execute_state.is_select or execute_state.is_update or execute_state.is_delete
     ) or execute_state.execution_options.get("skip_owner_scope"):
         return
-    owner_id = execute_state.session.info.get("installation_id", "legacy")
+    owner_id = execute_state.session.info.get("telegram_username", "legacy")
     execute_state.statement = execute_state.statement.options(
         with_loader_criteria(
             InstallationScoped,
@@ -36,7 +36,7 @@ def scope_installation_queries(execute_state):
 
 @event.listens_for(Session, "before_flush")
 def assign_installation_owner(session: Session, _flush_context, _instances) -> None:
-    owner_id = session.info.get("installation_id", "legacy")
+    owner_id = session.info.get("telegram_username", "legacy")
     for instance in session.new:
         if isinstance(instance, InstallationScoped) and not getattr(instance, "owner_id", None):
             instance.owner_id = owner_id

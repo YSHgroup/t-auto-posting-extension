@@ -69,6 +69,7 @@ class FeedService:
                     categories=provided.categories,
                     keywords=provided.keywords,
                     joined=False,
+                    data_origin="manual",
                 )
             else:
                 g = Group(
@@ -81,11 +82,20 @@ class FeedService:
                     keywords=[],
                     joined=False,
                     telegram_url=payload.group_url or "",
+                    data_origin="manual",
                 )
             self.db.add(g)
             self.db.flush()
         if payload.group_url:
             g.telegram_url = payload.group_url[:2048]
+        if g.data_origin != "manual":
+            g.data_origin = "manual"
+            g.name = payload.group_name or group_id
+            g.username = payload.group_username or ""
+            g.description = payload.group_description or ""
+            g.member_count = 0
+            g.categories = []
+            g.keywords = []
         existing = self.db.query(FeedItem).filter(FeedItem.group_id == g.id).first()
         if existing:
             self.db.commit()

@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
-from app.core.identity import installation_key_for_session
+from app.core.identity import account_key_for_session
 from app.models.entities import AISettings, AppSettings, SchedulerSettings
 from app.schemas.scheduler import SchedulerUpdate
 from app.services.scheduler_service import SchedulerService
@@ -13,7 +13,7 @@ class SettingsService:
 
     def get_settings(self) -> dict:
         settings = get_settings()
-        key = installation_key_for_session(self.db)
+        key = account_key_for_session(self.db)
         ai = self.db.query(AISettings).filter(AISettings.id == key).first()
         app = self.db.query(AppSettings).filter(AppSettings.id == key).first()
         sched = self.db.query(SchedulerSettings).filter(SchedulerSettings.id == key).first()
@@ -29,9 +29,9 @@ class SettingsService:
         }
 
     def update_settings(self, payload: dict) -> dict:
-        key = installation_key_for_session(self.db)
-        if payload.get("data_mode") not in (None, "mock"):
-            raise ValueError("Only mock data mode is currently implemented")
+        key = account_key_for_session(self.db)
+        if payload.get("data_mode") not in (None, "manual"):
+            raise ValueError("Only user-provided manual data mode is enabled")
         scheduler_keys = {
             "minimum_messages",
             "maximum_posts_per_day",
@@ -51,6 +51,8 @@ class SettingsService:
             app = AppSettings(id=key)
             self.db.add(app)
         if "ai_provider" in payload:
+            if payload["ai_provider"] not in {"openai", "anthropic"}:
+                raise ValueError("AI provider must be 'openai' or 'anthropic'")
             ai.provider = payload["ai_provider"]
         if "openai_model" in payload:
             ai.openai_model = payload["openai_model"]

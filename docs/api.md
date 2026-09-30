@@ -6,7 +6,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 |--------|------|-------------|
 | GET | `/health` | Health check |
 | GET | `/dashboard` | Dashboard aggregates |
-| GET | `/groups/search?q=` | Search groups (max 50, exclude joined) |
+| GET | `/groups/search?q=` | Returns no results; live Telegram search is unavailable |
 | GET | `/groups/{id}` | Group detail |
 | POST | `/groups/{id}/analyze` | Run AI analysis, store result |
 | GET | `/groups/{id}/analysis` | List analyses |
@@ -14,9 +14,8 @@ Base path: `/api`. OpenAPI at `/docs`.
 | POST | `/groups/{id}/observed-messages` | Import up to 500 user-copied messages for private analysis |
 | POST | `/groups/intake` | Record user-confirmed add/skip group decision |
 | GET | `/groups/intake-status/{id}` | Return this installation's add/skip decision |
-| POST | `/groups/{id}/simulate-reply` | Add a mock reply and unread notification |
+| POST | `/groups/{id}/simulate-reply` | Disabled (410); use manual reply logging |
 | POST | `/groups/{id}/log-manual-reply` | Save a user-copied reply as a private notification |
-| POST | `/groups/{id}/log-manual-reply` | Save a user-copied real reply as a private notification |
 | GET | `/feed` | List feed items ordered |
 | POST | `/feed` | Add group to feed (by group id) |
 | PUT | `/feed/{id}` | Update order, enabled, manual reorder |
@@ -32,7 +31,7 @@ Base path: `/api`. OpenAPI at `/docs`.
 | POST | `/posts/recommend` | AI recommend for `feed_item_id` |
 | GET | `/scheduler` | Get scheduler settings |
 | PUT | `/scheduler` | Update scheduler |
-| POST | `/bot/start` | Start bot |
+| POST | `/bot/start` | Returns 409; automatic posting is disabled in manual data mode |
 | POST | `/bot/stop` | Stop bot |
 | GET | `/bot/status` | Bot state + cursor |
 | GET | `/history` | Posting history |
@@ -44,8 +43,10 @@ Base path: `/api`. OpenAPI at `/docs`.
 | GET | `/settings` | App + AI display settings |
 | PUT | `/settings` | Update non-secret settings |
 | POST | `/settings/test-connection` | Health from extension |
-| POST | `/settings/reset-demo` | Reset mock demo data |
+| POST | `/settings/reset-demo` | Disabled (410); no demo data is seeded |
 
-Every `/api` route other than `/health` requires `X-Installation-ID`, a UUID created and stored by the extension. It scopes user-owned data by installation, but it is not a substitute for authenticated accounts or an authorization credential.
+Every `/api` route other than `/health` requires `X-Telegram-Username`, entered manually by the user in Settings. It scopes user-owned data by normalized username and creates an account row if needed. This header is not verified authentication: callers can claim another username. `X-Installation-ID` is optional installation metadata, not the data ownership key.
 
 Real Telegram message retrieval, message counting, posting, and deletion are not API operations. The manual-send endpoint records the user's confirmation only; it does not verify delivery.
+
+Analysis and recommendation requests require a valid OpenAI or Anthropic key on the server. Missing keys return HTTP 503; mock AI fallback is disabled.

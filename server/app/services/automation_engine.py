@@ -5,7 +5,7 @@ from zoneinfo import ZoneInfo
 from sqlalchemy.orm import Session
 
 from app.database.session import SessionLocal
-from app.core.identity import installation_key_for_session
+from app.core.identity import account_key_for_session
 from app.models.entities import BotState, FeedItem, Group, Post, PostAssignment, PostHistory, SchedulerSettings
 from app.providers.data.factory import get_data_provider
 
@@ -62,7 +62,7 @@ class AutomationEngine:
             )
             owners = {row.owner_id for row in rows} or {"legacy"}
             for owner_id in owners:
-                db.info["installation_id"] = owner_id
+                db.info["telegram_username"] = owner_id
                 db.expire_all()
                 try:
                     self._tick_installation(db)
@@ -73,10 +73,14 @@ class AutomationEngine:
             db.close()
 
     def _tick_installation(self, db: Session) -> None:
-        key = installation_key_for_session(db)
+        key = account_key_for_session(db)
         bot = db.query(BotState).filter(BotState.id == key).first()
         sched = db.query(SchedulerSettings).filter(SchedulerSettings.id == key).first()
         if not bot or bot.state != "RUNNING" or not sched or not sched.auto_mode:
+            return
+        provider = get_data_provider(db)
+        if not getattr(provider, "supports_automation", False):
+            # Real Telegram actions require an authorized integration; manual mode never posts.
             return
         if not self._within_schedule(sched):
             return

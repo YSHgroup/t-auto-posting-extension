@@ -38,13 +38,14 @@ export function SchedulerPage() {
       <h2 className="page-title">Scheduler</h2>
       <div className="card">
         <strong>Telegram Web safety boundary</strong>
-        <p>Auto Mode runs only the local mock simulation. Real Telegram sending, reading, message counting, and deletion are not automated. For real groups, use Feed to open Telegram, copy the selected text, send it yourself, manually remove any earlier post if needed, then record the manual send.</p>
+        <p>Automatic mode is disabled for real Telegram groups. Real sending, reading, message counting, and deletion are not automated. Use Feed to open Telegram, copy the selected text, send it yourself, manually remove any earlier post if needed, then record the manual send.</p>
       </div>
       <div className="card">
         <label>
           <input
             type="checkbox"
             checked={sched.auto_mode}
+            disabled
             onChange={(e) => setSched({ ...sched, auto_mode: e.target.checked })}
           />{" "}
           Auto Mode
@@ -91,8 +92,8 @@ export function SchedulerPage() {
           {bot?.state === "RUNNING" ? "● RUNNING" : "○ STOPPED"}
         </p>
         <div className="row">
-          <button type="button" className="btn btn-primary" onClick={() => void api.startBot().then(setBot)}>
-            ▶ START BOT
+          <button type="button" className="btn btn-primary" disabled>
+            ▶ REAL AUTO-POST UNAVAILABLE
           </button>
           <button type="button" className="btn btn-ghost" onClick={() => void api.stopBot().then(setBot)}>
             ■ STOP BOT

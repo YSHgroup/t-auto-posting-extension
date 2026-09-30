@@ -1,6 +1,6 @@
 # Telegram Auto Bot — API Server
 
-FastAPI backend with PostgreSQL, mock data provider, AI providers (OpenAI / Claude), and APScheduler automation.
+FastAPI backend with PostgreSQL, a manual user-supplied data provider, and OpenAI / Claude analysis. Automatic Telegram actions are disabled.
 
 ## Setup
 
@@ -11,11 +11,12 @@ source .venv/bin/activate
 pip install -e ".[dev]"
 cp ../.env.example ../.env
 alembic upgrade head
-python -m app.database.seed
 uvicorn app.main:app --reload --port 8000
 ```
 
 OpenAPI: http://localhost:8000/docs
+
+No demo data is seeded. Add groups and manually copied message text through the extension. Analysis requires an OpenAI or Anthropic API key configured on the server.
 
 ## Tests
 

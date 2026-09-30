@@ -2,7 +2,7 @@
 
 ## Overview
 
-Telegram Auto Bot is an independent group assistant. It does not use Telegram Bot API, MTProto, or Telegram Web automation. The content script only presents a user-confirmed group Add/Skip prompt. Real messages are available to AI only when the user manually copies and imports them.
+Telegram Auto Bot is an independent group assistant. It does not use Telegram Bot API, MTProto, or Telegram Web automation. The content script only presents a user-confirmed group Add/Skip prompt. Real messages are available to AI only when the user manually copies and imports them. No demo seed runs.
 
 ```text
 Chrome Extension (React/Vite, MV3, Side Panel)
@@ -13,7 +13,7 @@ FastAPI Application
         ├── Service Layer (business logic)
         ├── AutomationEngine + APScheduler
         ├── AIProvider (OpenAI | Claude)
-        ├── DataProvider (Mock demo only)
+        ├── DataProvider (Manual user-supplied data)
         └── PostgreSQL (SQLAlchemy + Alembic)
 ```
 
@@ -29,9 +29,7 @@ FastAPI Application
 - `get_latest_message(group_id)`
 - `simulate_reply(group_id, username, message, post_id?)` (mock demo)
 
-`get_data_provider()` selects the configured provider from `app_settings`. `mock` is
-implemented; unsupported modes return an explicit error instead of silently using
-mock data.
+`get_data_provider()` returns the manual provider. It reads only manually confirmed groups and the current installation's imported text. Search returns no results; publishing and simulated replies are unsupported.
 
 Telegram group identifiers and source URLs can be saved by a user. This is not a live Telegram data provider. The extension service worker sends only user-confirmed add/skip decisions to the API.
 
@@ -48,11 +46,11 @@ Invalid AI JSON: one correction retry, then error to client.
 - **Bot state**: `STOPPED | RUNNING | PAUSED | ERROR` (persisted)
 - **Scheduler settings**: auto mode, hours, days, interval, min messages, max posts/day
 - **Feed rotation**: persistent `current_feed_index`, ordered feed items
-- **Mock eligibility**: count mock messages between last mock post and latest mock message ≥ `minimum_messages`
-- **Mock success**: history, counters, mock replacement of the prior mock post
-- **On skip/fail**: record history, advance index (no infinite retry)
+- Manual mode does not run automatic posting or message-counting ticks.
+- Start is rejected for the manual provider; the scheduler cannot publish real Telegram messages.
+- Manual sends can be recorded by the user, without delivery verification.
 
-APScheduler runs mock-only ticks server-side. For real Telegram groups, Feed supports opening the group and copying selected post content; users manually send/delete in Telegram and can record their own confirmation. No live messages are counted and no real message is posted or deleted.
+APScheduler does not execute Telegram actions. For real groups, Feed supports opening the group and copying selected post content; users manually send/delete in Telegram and can record their own confirmation. No live messages are counted and no real message is posted or deleted.
 
 ## Installation data scope
 

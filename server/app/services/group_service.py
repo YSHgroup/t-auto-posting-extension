@@ -28,6 +28,8 @@ class GroupService:
     def _ensure_group(self, external_id: str) -> Group:
         existing = self.db.query(Group).filter(Group.external_id == external_id).first()
         if existing:
+            if existing.data_origin != "manual":
+                raise ValueError("This is legacy/demo group data. Confirm it through Telegram group intake first.")
             return existing
         pg = self.data.get_group(external_id)
         if not pg:
@@ -107,9 +109,18 @@ class GroupService:
                 categories=[],
                 keywords=[],
                 joined=False,
+                data_origin="manual",
+                data_origin="manual",
             )
             self.db.add(group)
             self.db.flush()
+        elif group.data_origin != "manual":
+            group.data_origin = "manual"
+            group.name = group_name.strip() or group.name
+            group.categories = []
+            group.keywords = []
+            group.member_count = 0
+            group.description = f"User-confirmed group from {source_url}" if source_url else ""
         if source_url:
             group.telegram_url = source_url[:2048]
         if action == "add":

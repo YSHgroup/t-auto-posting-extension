@@ -58,6 +58,7 @@ class Group(Base):
     username: Mapped[str] = mapped_column(String(128), index=True)
     description: Mapped[str] = mapped_column(Text, default="")
     telegram_url: Mapped[str] = mapped_column(String(2048), default="")
+    data_origin: Mapped[str] = mapped_column(String(16), default="manual", index=True)
     member_count: Mapped[int] = mapped_column(Integer, default=0)
     categories: Mapped[list] = mapped_column(JSONB, default=list)
     keywords: Mapped[list] = mapped_column(JSONB, default=list)
@@ -115,6 +116,19 @@ class User(Base):
     username: Mapped[str] = mapped_column(String(128), index=True)
     display_name: Mapped[str] = mapped_column(String(255), default="")
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+
+
+class Account(Base):
+    """Application account keyed by a username entered by the user (not verified)."""
+
+    __tablename__ = "accounts"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    telegram_username: Mapped[str] = mapped_column(String(32), unique=True, index=True)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime, default=datetime.utcnow, onupdate=datetime.utcnow
+    )
 
 
 class GroupAnalysis(InstallationScoped, Base):
@@ -286,7 +300,7 @@ class AppSettings(InstallationScoped, Base):
     __tablename__ = "app_settings"
 
     id: Mapped[int] = mapped_column(BigInteger, primary_key=True, default=1)
-    data_mode: Mapped[str] = mapped_column(String(16), default="mock")
+    data_mode: Mapped[str] = mapped_column(String(16), default="manual")
 
 
 class SkippedGroup(InstallationScoped, Base):

@@ -83,12 +83,7 @@ def import_observed_messages(
 def simulate_reply(
     group_id: str, payload: SimulatedReplyRequest, db: Session = Depends(get_db)
 ):
-    try:
-        return GroupService(db).simulate_reply(
-            group_id, payload.username, payload.message, str(payload.post_id) if payload.post_id else None
-        )
-    except ValueError as e:
-        raise HTTPException(400, str(e)) from e
+    raise HTTPException(410, "Simulated replies are disabled; log a user-copied reply instead.")
 
 
 @api_router.post("/groups/{group_id}/log-manual-reply")
@@ -109,6 +104,8 @@ async def analyze_group(group_id: str, db: Session = Depends(get_db)):
         return await GroupService(db).analyze(group_id)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(503, str(e)) from e
 
 
 @api_router.get("/groups/{group_id}/analysis")
@@ -178,6 +175,8 @@ async def recommend_post(payload: RecommendPostRequest, db: Session = Depends(ge
         return await PostService(db).recommend(payload)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(503, str(e)) from e
 
 
 @api_router.get("/posts/{post_id}", response_model=PostOut)
@@ -228,7 +227,10 @@ def update_scheduler(payload: SchedulerUpdate, db: Session = Depends(get_db)):
 
 @api_router.post("/bot/start", response_model=BotStatusOut)
 def start_bot(db: Session = Depends(get_db)):
-    return SchedulerService(db).start_bot()
+    try:
+        return SchedulerService(db).start_bot()
+    except ValueError as e:
+        raise HTTPException(409, str(e)) from e
 
 
 @api_router.post("/bot/stop", response_model=BotStatusOut)
@@ -269,6 +271,8 @@ async def scan_opportunities(group_id: str, db: Session = Depends(get_db)):
         return await OpportunityService(db).scan_group(group_id)
     except ValueError as e:
         raise HTTPException(400, str(e)) from e
+    except RuntimeError as e:
+        raise HTTPException(503, str(e)) from e
 
 
 @api_router.get("/opportunities")
@@ -296,7 +300,4 @@ def test_connection(db: Session = Depends(get_db)):
 
 @api_router.post("/settings/reset-demo")
 def reset_demo(db: Session = Depends(get_db)):
-    from app.database.seed import run_seed
-
-    run_seed(db, reset=True)
-    return {"ok": True}
+    raise HTTPException(status_code=410, detail="Demo data reset is disabled; this server uses user-provided data only.")

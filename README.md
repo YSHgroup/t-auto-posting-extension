@@ -1,6 +1,6 @@
 # Telegram Auto Bot
 
-Independent Telegram group assistant (not a Telegram Bot). Chrome extension (React + TypeScript) + FastAPI + PostgreSQL, with a mock provider for demos and OpenAI / Anthropic Claude analysis.
+Independent Telegram group assistant (not a Telegram Bot). Chrome extension (React + TypeScript) + FastAPI + PostgreSQL, with user-entered group data and OpenAI / Anthropic Claude analysis.
 
 The Telegram Web content script is restricted to `web.telegram.org` and only presents a user-confirmed Add/Skip prompt. It does not inspect chat messages, click Telegram controls, send messages, or delete messages. For real groups, users manually import copied message text for AI analysis, copy a selected post, send it themselves, and optionally record that manual action in history. Delivery is not independently verified.
 
@@ -28,7 +28,6 @@ pip install -e ".[dev]"
 cp ../.env.example ../.env
 # Start PostgreSQL (docker compose up -d db)
 alembic upgrade head
-python -m app.database.seed
 uvicorn app.main:app --reload --port 8000
 ```
 
@@ -54,21 +53,15 @@ OPENAI_API_KEY=sk-...
 OPENAI_MODEL=gpt-4o-mini
 ```
 
-If keys are missing, `AI_MOCK_WHEN_NO_KEY=true` uses structured mock AI for local demos.
+Analysis requires the selected provider's API key to be configured on the server. There is no mock AI fallback. Remove the old `AI_MOCK_WHEN_NO_KEY` line from any pre-existing local `.env`; it is no longer used.
 
-## Mock data
+## Data source
 
-```bash
-cd server && python -m app.database.seed
-```
-
-Includes 50+ groups, messages, sample posts, replies, notifications, and opportunities.
-
-Reset from extension **Settings → Reset demo data** or `POST /api/settings/reset-demo`.
+No groups, messages, users, posts, replies, or opportunities are seeded. Add groups from Telegram Web using the explicit Add/Skip prompt or enter a group ID manually. Real message text must be copied and imported by the user. Live Telegram search and automatic Telegram actions are not implemented.
 
 ## Real Telegram groups (manual workflow)
 
-The extension content script runs only on `web.telegram.org` and asks whether to add or skip the current group. For real group analysis, manually copy text into Group Detail (up to 500 messages). Feed provides an Open Telegram link and Copy selected post action; send and any deletion are performed manually by the user. Use **Record manual send** after sending, and **Log a copied reply** for replies you want in Notifications. The extension does not access Telegram chats or verify delivery. Auto Mode is mock-only.
+The extension content script runs only on `web.telegram.org` and asks whether to add or skip the current group. For real group analysis, manually copy text into Group Detail (up to 500 messages). Feed provides an Open Telegram link and Copy selected post action; send and any deletion are performed manually by the user. Use **Record manual send** after sending, and **Log a copied reply** for replies you want in Notifications. The extension does not access Telegram chats or verify delivery. Automatic posting is disabled.
 
 ## Tests
 
@@ -83,14 +76,11 @@ npm test
 
 ## Demo workflow
 
-1. Open extension → **Groups** → search `blockchain startup`
-2. Open a group → **Analyze Group**
-3. **Posts** → create templates
-4. **Feed** → add groups, select posts (AI recommendations are suggestions only)
-5. **Scheduler** → 09:00–20:00, Mon–Fri, min 20 messages
-6. **Dashboard** → **START BOT**
-7. **History** → view success/skipped/failed
-8. **Notifications** / **Opportunities** → replies and 500-message scans
+1. Open a group in Telegram Web and choose Add or Skip.
+2. Create post templates and select one for the feed item.
+3. Manually import permitted message text and request AI analysis.
+4. Copy the selected post, send it yourself in Telegram, then record your send.
+5. Manually log copied replies and scan imported messages for opportunities.
 
 ## Documentation
 
@@ -104,7 +94,7 @@ npm test
 - Use HTTPS and restrict `CORS_ORIGINS`
 - Configure authentication (hooks reserved for Phase 7 hardening)
 - Run API behind a reverse proxy; keep secrets in environment / vault
-- User-owned feed, posts, history, notifications, analyses, and scheduler state are separated by a stable extension-installation UUID. This is data partitioning, not verified account authentication; add trusted sign-in/pairing before public multi-tenant deployment.
+- User-owned feed, posts, history, notifications, analyses, and scheduler state are separated by the Telegram username manually entered in Settings. Usernames are not verified; add trusted sign-in/pairing before public multi-tenant deployment.
 
 ## Changing backend URL
 

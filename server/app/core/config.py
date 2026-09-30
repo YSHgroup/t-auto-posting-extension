@@ -13,19 +13,19 @@ class Settings(BaseSettings):
         extra="ignore",
     )
 
-    database_url: str
-    environment: str
-    cors_origins: str
-    log_level: str
+    # Defaults keep Alembic and local development usable before a .env is created.
+    # Deployment values can still override these through environment variables.
+    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/telegram_auto_bot"
+    environment: str = "development"
+    cors_origins: str = "http://localhost:5173"
+    log_level: str = "INFO"
 
-    ai_provider: str
-    openai_api_key: str
-    openai_model: str
-    anthropic_api_key: str
-    anthropic_model: str
-    ai_mock_when_no_key: bool
-
-    data_mode: str
+    ai_provider: str = "openai"
+    openai_api_key: str = ""
+    openai_model: str = "gpt-4o-mini"
+    anthropic_api_key: str = ""
+    anthropic_model: str = "claude-3-5-haiku-latest"
+    data_mode: str = "manual"
 
     @property
     def cors_origin_list(self) -> list[str]:
