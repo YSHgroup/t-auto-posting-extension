@@ -39,6 +39,8 @@ For a fresh Compose database, run `docker compose up -d db` and use `postgresql+
 
 On Windows, run Alembic from the `server` directory after confirming the root `.env` has the correct `DATABASE_URL`. If the password contains URL-reserved characters such as `@`, `:`, `/`, or `#`, URL-encode those characters in the connection URL.
 
+If the traceback shows `.venv`/Alembic and `migrations/env.py` under different checkout directories, the command is mixing two copies of the repository. Change into the intended checkout's `server` directory and invoke Alembic through that same checkout's virtual-environment Python (for example, `.venv\Scripts\python.exe -m alembic -c alembic.ini upgrade head`). Confirm the root `.env` beside that checkout is the one containing the `DATABASE_URL` you intend to use. This fixes a mixed-checkout configuration, but the PostgreSQL password must still be correct for the server listening on port 5432.
+
 ## Extension
 
 ```bash
