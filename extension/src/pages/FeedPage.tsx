@@ -7,11 +7,17 @@ export function FeedPage() {
   const [items, setItems] = useState<FeedItem[]>([]);
   const [posts, setPosts] = useState<Post[]>([]);
   const [recommendations, setRecommendations] = useState<Record<string, { post_id: string; reason: string; confidence: number }[]>>({});
+  const [loading, setLoading] = useState(true);
 
   const load = async () => {
-    const [feed, ps] = await Promise.all([api.listFeed(), api.listPosts()]);
-    setItems(feed.sort((a, b) => a.order_index - b.order_index));
-    setPosts(ps);
+    setLoading(true);
+    try {
+      const [feed, ps] = await Promise.all([api.listFeed(), api.listPosts()]);
+      setItems(feed.sort((a, b) => a.order_index - b.order_index));
+      setPosts(ps);
+    } finally {
+      setLoading(false);
+    }
   };
 
   useEffect(() => {
@@ -51,8 +57,17 @@ export function FeedPage() {
   return (
     <div>
       <h2 className="page-title">Feed</h2>
-      {items.map((item, index) => (
-        <div key={item.id} className="card">
+      {loading ? (
+        <p>Loading feed…</p>
+      ) : items.length === 0 ? (
+        <div className="card">
+          <p>No feed groups yet.</p>
+          <p className="muted">Add groups from Telegram Web or use the Groups page to add them manually.</p>
+        </div>
+      ) : (
+        <>
+          {items.map((item, index) => (
+            <div key={item.id} className="card">
           <div className="row">
             <strong>#{index + 1}</strong>
             {item.group_external_id ? (
@@ -138,7 +153,9 @@ export function FeedPage() {
             </div>
           )}
         </div>
-      ))}
+          ))}
+        </>
+      )}
     </div>
   );
 }

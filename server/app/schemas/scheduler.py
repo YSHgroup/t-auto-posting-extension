@@ -41,3 +41,4 @@ class DashboardOut(BaseModel):
     unread_notifications: int
     potential_investors: int
     potential_partners: int
+    last_posted_at: str | None = None

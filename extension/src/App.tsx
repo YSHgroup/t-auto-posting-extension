@@ -10,6 +10,7 @@ import { PostsPage } from "./pages/PostsPage";
 import { SchedulerPage } from "./pages/SchedulerPage";
 import { HistoryPage } from "./pages/HistoryPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { ProfilePage } from "./pages/ProfilePage";
 import { useSettingsStore } from "./stores/settingsStore";
 import { useState, type FormEvent } from "react";
 
@@ -69,6 +70,7 @@ export function App() {
         <Route path="groups" element={<GroupsPage />} />
         <Route path="groups/:id" element={<GroupDetailPage />} />
         <Route path="feed" element={<FeedPage />} />
+        <Route path="profile" element={<ProfilePage />} />
         <Route path="posts" element={<PostsPage />} />
         <Route path="scheduler" element={<SchedulerPage />} />
         <Route path="history" element={<HistoryPage />} />

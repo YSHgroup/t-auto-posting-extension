@@ -80,6 +80,7 @@ export interface Dashboard {
   unread_notifications: number;
   potential_investors: number;
   potential_partners: number;
+  last_posted_at?: string | null;
 }
 
 export interface BotStatus {

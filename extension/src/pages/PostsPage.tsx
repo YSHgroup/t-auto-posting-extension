@@ -7,11 +7,19 @@ const POST_TYPES = ["Partnership", "Job", "Investment", "Business", "General", "
 export function PostsPage() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [editing, setEditing] = useState<Partial<Post> | null>(null);
+  const [loading, setLoading] = useState(true);
 
   const load = async () => setPosts(await api.listPosts());
 
   useEffect(() => {
-    void load();
+    void (async () => {
+      setLoading(true);
+      try {
+        await load();
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
   const save = async () => {
@@ -34,11 +42,7 @@ export function PostsPage() {
   return (
     <div>
       <h2 className="page-title">Posts</h2>
-      <button
-        type="button"
-        className="btn btn-primary"
-        onClick={() => setEditing({ title: "", post_type: "Partnership", content: "", status: "Active" })}
-      >
+      <button type="button" className="btn btn-primary" onClick={() => setEditing({ title: "", post_type: "Partnership", content: "", status: "Active" })}>
         Create Post
       </button>
       {editing && (
@@ -69,33 +73,44 @@ export function PostsPage() {
           </div>
         </div>
       )}
-      {posts.map((p) => (
-        <div key={p.id} className="card">
-          <strong>{p.title}</strong>
-          <p>
-            Type: {p.post_type} · Status: {p.status} · Used: {p.usage_count} times
-          </p>
-          <p>Created: {new Date(p.created_at).toLocaleDateString()}</p>
-          <div className="row">
-            <button type="button" className="btn btn-ghost" onClick={() => setEditing(p)}>
-              Edit
-            </button>
-            <button type="button" className="btn btn-ghost" onClick={() => void api.duplicatePost(p.id).then(load)}>
-              Duplicate
-            </button>
-            <button type="button" className="btn btn-danger" onClick={() => void api.deletePost(p.id).then(load)}>
-              Delete
-            </button>
-            <button
-              type="button"
-              className="btn btn-ghost"
-              onClick={() => void api.updatePost(p.id, { enabled: !p.enabled }).then(load)}
-            >
-              {p.enabled ? "Disable" : "Enable"}
-            </button>
-          </div>
+      {loading ? (
+        <p>Loading posts…</p>
+      ) : posts.length === 0 ? (
+        <div className="card">
+          <p>No posts defined yet.</p>
+          <p className="muted">Create reusable post templates here for your feeds.</p>
         </div>
-      ))}
+      ) : (
+        <>
+          {posts.map((p) => (
+            <div key={p.id} className="card">
+              <strong>{p.title}</strong>
+              <p>
+                Type: {p.post_type} · Status: {p.status} · Used: {p.usage_count} times
+              </p>
+              <p>Created: {new Date(p.created_at).toLocaleDateString()}</p>
+              <div className="row">
+                <button type="button" className="btn btn-ghost" onClick={() => setEditing(p)}>
+                  Edit
+                </button>
+                <button type="button" className="btn btn-ghost" onClick={() => void api.duplicatePost(p.id).then(load)}>
+                  Duplicate
+                </button>
+                <button type="button" className="btn btn-danger" onClick={() => void api.deletePost(p.id).then(load)}>
+                  Delete
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-ghost"
+                  onClick={() => void api.updatePost(p.id, { enabled: !p.enabled }).then(load)}
+                >
+                  {p.enabled ? "Disable" : "Enable"}
+                </button>
+              </div>
+            </div>
+          ))}
+        </>
+      )}
     </div>
   );
 }

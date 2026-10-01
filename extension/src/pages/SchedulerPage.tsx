@@ -123,9 +123,6 @@ export function SchedulerPage() {
           {navigationEnabled ? "● RUNNING" : "○ STOPPED"}
         </p>
         <div className="row">
-          <button type="button" className="btn btn-primary" onClick={() => void controlNavigation("start")} disabled={navigationEnabled}>
-            ▶ START GROUP NAVIGATION
-          </button>
           <button type="button" className="btn btn-ghost" onClick={() => void controlNavigation("stop")} disabled={!navigationEnabled}>
             ■ STOP NAVIGATION
           </button>

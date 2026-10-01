@@ -15,7 +15,7 @@ class Settings(BaseSettings):
 
     # Defaults keep Alembic and local development usable before a .env is created.
     # Deployment values can still override these through environment variables.
-    database_url: str = "postgresql+psycopg://postgres:postgres@localhost:5432/telegram_auto_bot"
+    database_url: str = "postgresql+psycopg://postgres:123456@localhost:5432/telegram_auto_bot"
     environment: str = "development"
     cors_origins: str = "http://localhost:5173"
     log_level: str = "INFO"

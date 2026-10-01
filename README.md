@@ -55,6 +55,49 @@ Set **Settings → API Server URL** (e.g. `http://localhost:8000`).
 
 ## AI configuration
 
+## Recent fixes (2026-10-01)
+
+- Dashboard UI now immediately reflects local start/stop commands and prefers the local runtime state when showing the bot status.
+- The dashboard countdown (reversal counter) pauses when the local bot is stopped and resumes when restarted or resumed.
+- Start / Stop / Resume / Reset actions refresh local navigation state by reading `chrome.storage` and the `telegram-auto-bot-local-navigation` alarm, keeping the displayed remaining time accurate.
+- The Telegram intake content-script now detects group titles more reliably by preferring `og:title`, using additional DOM selectors, and cleaning common Telegram suffixes/trailing counts.
+
+These changes are implemented in:
+
+- `extension/src/pages/DashboardPage.tsx` — local state refresh, countdown behavior, and UI status preference.
+- `extension/src/telegram-intake.ts` — improved group name detection.
+
+If you keep developing, commit and build the extension before loading the unpacked `extension/dist` directory.
+
+How to verify the fixes
+
+1. Build and load the extension in Chrome (developer mode):
+
+```bash
+cd extension
+npm install
+npm run build
+```
+
+2. Open Chrome Extensions and load `extension/dist` unpacked. Open the extension side panel.
+
+3. Dashboard behavior
+- Click `START BOT` — the button should switch to `STOP BOT` and the status dot should show RUNNING immediately.
+- The reversal counter should begin counting down from the scheduled interval. Click `STOP BOT` — the counter must pause and the remaining time should be preserved. Click `RESUME` — the counter should continue from the preserved time.
+
+4. Navigation behavior
+- Ensure you have at least one enabled Feed group with a `group_telegram_url`. When the local navigation interval elapses, the extension background should open the Telegram URL in a tab (or update an existing Telegram tab). If navigation does not occur, check the extension background console for alarms or errors.
+
+5. Intake detection
+- On `web.telegram.org`, open a group and confirm the Add/Skip prompt shows the cleaned group name (not noisy page title). If the title is still incorrect, open the page console and inspect `document.querySelector("meta[property='og:title']")` and the selectors listed in `extension/src/telegram-intake.ts`.
+
+Debugging tips (when things don't navigate)
+
+- Open the extension background page console (Extensions → background page) and watch for alarm firing logs or errors.
+- Inspect `chrome.alarms.get('telegram-auto-bot-local-navigation')` and `chrome.storage.local.get('telegram_auto_bot_navigation:<username>')` in the console to verify scheduledTime and `pausedRemainingMs` values.
+- If navigation does not occur but the timer reached zero, confirm feed items have `group_telegram_url` and are enabled.
+
+
 Set keys in server `.env` (never in the extension):
 
 ```env

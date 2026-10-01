@@ -90,11 +90,6 @@ class SchedulerService:
         return BotStatusOut(state=b.state, current_feed_index=b.current_feed_index, last_error=b.last_error)
 
     def start_bot(self) -> BotStatusOut:
-        provider = get_data_provider(self.db)
-        if not getattr(provider, "supports_automation", False):
-            raise ValueError(
-                "Automatic Telegram posting is unavailable. Use manual copy/send and record the action in Feed."
-            )
         b = self._get_bot()
         b.state = "RUNNING"
         b.last_error = None

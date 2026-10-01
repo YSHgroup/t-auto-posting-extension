@@ -39,6 +39,8 @@ export const api = {
   health: () => request<{ status: string }>("/health"),
   dashboard: () => request<Dashboard>("/dashboard"),
   searchGroups: (q: string) => request<GroupSearchResult[]>(`/groups/search?q=${encodeURIComponent(q)}`),
+    clearData: () => request<{ ok: boolean }>("/account/clear-data", { method: "POST" }),
+    removeAccount: () => request<{ ok: boolean }>("/account/remove", { method: "POST" }),
   intakeTelegramGroup: (body: { group_id: string; group_name: string; source_url: string; action: "add" | "skip" }) =>
     request<{ group_id: string; action: string; group_name: string }>("/groups/intake", {
       method: "POST",

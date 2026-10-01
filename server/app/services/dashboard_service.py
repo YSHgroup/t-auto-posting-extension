@@ -12,6 +12,13 @@ class DashboardService:
 
     def get_dashboard(self) -> DashboardOut:
         start = datetime.utcnow().replace(hour=0, minute=0, second=0, microsecond=0)
+        latest = (
+            self.db.query(PostHistory)
+            .filter(PostHistory.status == "success")
+            .order_by(PostHistory.posted_at.desc())
+            .first()
+        )
+        last_posted = latest.posted_at.isoformat() if latest and latest.posted_at else None
         return DashboardOut(
             total_groups=self.db.query(FeedItem).count(),
             active_feed_groups=self.db.query(FeedItem).filter(FeedItem.enabled.is_(True)).count(),
@@ -24,4 +31,5 @@ class DashboardService:
             unread_notifications=self.db.query(Notification).filter(Notification.read.is_(False)).count(),
             potential_investors=self.db.query(Opportunity).filter(Opportunity.category == "investment").count(),
             potential_partners=self.db.query(Opportunity).filter(Opportunity.category == "partnership").count(),
+            last_posted_at=last_posted,
         )

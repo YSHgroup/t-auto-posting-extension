@@ -4,6 +4,7 @@ const links = [
   ["", "Dashboard"],
   ["groups", "Groups"],
   ["feed", "Feed"],
+  ["profile", "Profile"],
   ["posts", "Posts"],
   ["scheduler", "Scheduler"],
   ["history", "History"],

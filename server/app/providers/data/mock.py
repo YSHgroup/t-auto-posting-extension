@@ -12,6 +12,8 @@ from app.providers.data.mock_catalog import MOCK_GROUPS
 class MockDataProvider:
     """In-memory + DB-backed mock Telegram-like data."""
 
+    supports_automation = True
+
     def __init__(self, db: Session):
         self.db = db
 
@@ -180,8 +182,9 @@ class MockDataProvider:
             .order_by(GroupMessage.sequence_num.desc())
             .first()
         )
-        if prev:
-            prev.replaced = True
+        # Do not mark previous app posts as replaced here — keep backend posting history intact.
+        # The extension will delete the previous message from Telegram itself when needed;
+        # backend history should preserve prior posts for auditing and analytics.
         latest = self.get_latest_sequence(group_id)
         new_seq = latest + 1
         msg_id = f"msg_{group_id}_{new_seq}"

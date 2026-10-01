@@ -22,6 +22,7 @@ from app.services.opportunity_service import OpportunityService
 from app.services.post_service import PostService
 from app.services.scheduler_service import SchedulerService
 from app.services.settings_service import SettingsService
+from app.services.account_service import AccountService
 
 api_router = APIRouter(prefix="/api")
 
@@ -223,6 +224,24 @@ def duplicate_post(post_id: UUID, db: Session = Depends(get_db)):
 @api_router.get("/scheduler", response_model=SchedulerOut)
 def get_scheduler(db: Session = Depends(get_db)):
     return SchedulerService(db).get_scheduler()
+
+
+@api_router.post("/account/clear-data")
+def clear_account_data(db: Session = Depends(get_db)):
+    try:
+        AccountService(db).clear_data()
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
+
+
+@api_router.post("/account/remove")
+def remove_account(db: Session = Depends(get_db)):
+    try:
+        AccountService(db).remove_account()
+        return {"ok": True}
+    except ValueError as e:
+        raise HTTPException(400, str(e)) from e
 
 
 @api_router.put("/scheduler", response_model=SchedulerOut)
